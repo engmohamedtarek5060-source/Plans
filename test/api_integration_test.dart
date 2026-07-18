@@ -14,6 +14,7 @@ import 'package:saudiaaaa/features/auth/data/datasources/auth_remote_data_source
 import 'package:saudiaaaa/features/dashboard/data/models/dashboard_stats_model.dart';
 import 'package:saudiaaaa/features/expenses/data/models/expense_model.dart';
 import 'package:saudiaaaa/features/inventory/data/models/product_model.dart';
+import 'package:saudiaaaa/features/sales/data/models/invoice_detail_model.dart';
 import 'package:saudiaaaa/features/sales/data/models/invoice_model.dart';
 import 'package:saudiaaaa/features/treasury/data/models/bank_account_model.dart';
 
@@ -154,6 +155,21 @@ void main() {
         expect(invoice.amount, isA<double>());
         expect(invoice.itemCount, greaterThanOrEqualTo(0));
       }
+    }, timeout: const Timeout(Duration(seconds: 45)));
+
+    test('invoice detail parses when the list has any invoice', () async {
+      final invoices = (await api.getList(ApiEndpoints.invoices))
+          .map(InvoiceModel.fromJson)
+          .toList();
+      if (invoices.isEmpty) return; // nothing to drill into on an empty tenant
+
+      final detail = InvoiceDetailModel.fromJson(
+        await api.getObject('${ApiEndpoints.invoices}/${invoices.first.rawId}'),
+      );
+      expect(detail.number, isNotEmpty);
+      expect(detail.total, isA<double>());
+      // Detail lines should agree with the list's item count.
+      expect(detail.lines.length, invoices.first.itemCount);
     }, timeout: const Timeout(Duration(seconds: 45)));
 
     test('products parse, incl. computed stockLevel', () async {

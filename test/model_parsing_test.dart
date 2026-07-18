@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:saudiaaaa/core/utils/json_parse.dart';
 import 'package:saudiaaaa/features/inventory/domain/entities/product.dart';
 import 'package:saudiaaaa/features/sales/data/models/invoice_model.dart';
+import 'package:saudiaaaa/features/sales/data/models/invoice_detail_model.dart';
 import 'package:saudiaaaa/features/sales/domain/entities/invoice.dart';
 import 'package:saudiaaaa/features/treasury/data/models/bank_account_model.dart';
 import 'package:saudiaaaa/features/inventory/data/models/product_model.dart';
@@ -69,6 +70,7 @@ void main() {
       final invoice = InvoiceModel.fromJson(invoiceJson());
       expect(invoice.amount, 146.63);
       expect(invoice.id, 'INV-202607-0001');
+      expect(invoice.rawId, 5);
       expect(invoice.customer, 'Acme Trading Co');
       expect(invoice.itemCount, 1);
     });
@@ -96,6 +98,69 @@ void main() {
       expect(invoice.amount, 0);
       expect(invoice.itemCount, 0);
       expect(invoice.customer, contains('#0'));
+    });
+  });
+
+  group('InvoiceDetailModel', () {
+    test('parses lines, customer contact, and totals; balance due nets paid',
+        () {
+      final detail = InvoiceDetailModel.fromJson({
+        'id': 5,
+        'invoiceNumber': 'INV-202607-0001',
+        'date': '2026-07-17T00:00:00.000Z',
+        'dueDate': '2026-08-17T00:00:00.000Z',
+        'status': 'DRAFT',
+        'subtotal': '127.5',
+        'vatAmount': '19.13',
+        'discount': '0',
+        'total': '146.63',
+        'paidAmount': '46.63',
+        'notes': 'Test invoice',
+        'customer': {
+          'name': 'Acme Trading Co',
+          'email': 'acme@test.com',
+          'phone': '+966500000001',
+        },
+        'lines': [
+          {
+            'description': 'Steel Bolt M8',
+            'quantity': '10',
+            'unitPrice': '12.75',
+            'vatAmount': '19.13',
+            'total': '146.63',
+            'product': {'name': 'Steel Bolt M8'},
+          }
+        ],
+      });
+
+      expect(detail.number, 'INV-202607-0001');
+      expect(detail.customerEmail, 'acme@test.com');
+      expect(detail.lines, hasLength(1));
+      expect(detail.lines.first.quantity, 10);
+      expect(detail.lines.first.total, 146.63);
+      expect(detail.total, 146.63);
+      // 146.63 - 46.63 paid.
+      expect(detail.balanceDue, closeTo(100, 0.001));
+    });
+
+    test('falls back to product name when a line has no description', () {
+      final detail = InvoiceDetailModel.fromJson({
+        'id': 1,
+        'invoiceNumber': 'INV-1',
+        'date': '2026-07-17T00:00:00.000Z',
+        'total': '0',
+        'paidAmount': '0',
+        'lines': [
+          {
+            'description': null,
+            'quantity': '1',
+            'unitPrice': '0',
+            'total': '0',
+            'product': {'name': 'Widget'},
+          }
+        ],
+      });
+      expect(detail.lines.first.description, 'Widget');
     });
   });
 

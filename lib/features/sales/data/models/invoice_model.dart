@@ -30,6 +30,7 @@ class InvoiceModel {
     );
 
     return Invoice(
+      rawId: asInt(json['id']),
       // Show the human invoice number; fall back to the row id.
       id: asString(
         json['invoiceNumber'],
@@ -40,7 +41,7 @@ class InvoiceModel {
       customerAr: customerName,
       date: asDate(json['date']),
       amount: total,
-      status: _status(rawStatus: rawStatus, total: total, paid: paid, dueDate: dueDate),
+      status: statusFor(rawStatus: rawStatus, total: total, paid: paid, dueDate: dueDate),
       itemCount: lines.length,
     );
   }
@@ -52,7 +53,9 @@ class InvoiceModel {
   ///  - fully settled            -> paid
   ///  - past due and unsettled   -> overdue
   ///  - otherwise                -> pending
-  static InvoiceStatus _status({
+  ///
+  /// Shared with the detail view so a row and its detail never disagree.
+  static InvoiceStatus statusFor({
     required String rawStatus,
     required double total,
     required double paid,

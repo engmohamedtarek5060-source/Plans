@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/di/app_dependencies.dart';
 import 'package:saudiaaaa/features/sales/data/repositories/sales_repository_impl.dart';
 import 'package:saudiaaaa/features/sales/domain/entities/invoice.dart';
+import 'package:saudiaaaa/features/sales/domain/entities/invoice_detail.dart';
 import 'package:saudiaaaa/features/sales/domain/repositories/sales_repository.dart';
 import 'package:saudiaaaa/features/sales/domain/usecases/get_invoices.dart';
 
@@ -12,6 +13,13 @@ final salesRepositoryProvider = Provider<SalesRepository>(
 final getInvoicesProvider = Provider<GetInvoices>(
   (ref) => GetInvoices(ref.watch(salesRepositoryProvider)),
 );
+
+/// Full invoice detail, keyed by numeric backend id. autoDispose so it doesn't
+/// pin every opened invoice in memory.
+final invoiceDetailProvider = FutureProvider.autoDispose
+    .family<InvoiceDetail, int>((ref, id) {
+  return ref.watch(salesRepositoryProvider).getInvoice(id);
+});
 
 enum InvoiceFilter { all, paid, pending, overdue }
 

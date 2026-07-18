@@ -11,6 +11,7 @@ import 'package:saudiaaaa/core/widgets/error_state.dart';
 import 'package:saudiaaaa/core/widgets/screen_header.dart';
 import 'package:saudiaaaa/core/widgets/skeleton_loader.dart';
 import 'package:saudiaaaa/features/sales/presentation/controllers/sales_controller.dart';
+import 'package:saudiaaaa/features/sales/presentation/screens/invoice_detail_screen.dart';
 import 'package:saudiaaaa/features/sales/presentation/widgets/invoice_card.dart';
 
 class SalesScreen extends ConsumerStatefulWidget {
@@ -113,6 +114,14 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                           return InvoiceCard(
                             invoice: invoice,
                             isArabic: isArabic,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => InvoiceDetailScreen(
+                                  invoiceId: invoice.rawId,
+                                  invoiceNumber: invoice.id,
+                                ),
+                              ),
+                            ),
                           );
                         },
                       ),

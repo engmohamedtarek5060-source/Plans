@@ -1,7 +1,9 @@
 import 'package:saudiaaaa/core/network/api_config.dart';
 import 'package:saudiaaaa/core/network/api_service.dart';
+import 'package:saudiaaaa/features/sales/data/models/invoice_detail_model.dart';
 import 'package:saudiaaaa/features/sales/data/models/invoice_model.dart';
 import 'package:saudiaaaa/features/sales/domain/entities/invoice.dart';
+import 'package:saudiaaaa/features/sales/domain/entities/invoice_detail.dart';
 import 'package:saudiaaaa/features/sales/domain/repositories/sales_repository.dart';
 
 class SalesRepositoryImpl implements SalesRepository {
@@ -15,5 +17,11 @@ class SalesRepositoryImpl implements SalesRepository {
     return rows.map(InvoiceModel.fromJson).toList()
       // The backend returns insertion order; the UI wants newest first.
       ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  @override
+  Future<InvoiceDetail> getInvoice(int id) async {
+    final json = await _api.getObject('${ApiEndpoints.invoices}/$id');
+    return InvoiceDetailModel.fromJson(json);
   }
 }
