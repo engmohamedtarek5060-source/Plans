@@ -6,6 +6,7 @@ import 'package:saudiaaaa/core/network/api_config.dart';
 import 'package:saudiaaaa/core/network/api_exception.dart';
 import 'package:saudiaaaa/core/network/api_service.dart';
 import 'package:saudiaaaa/core/network/session_events.dart';
+import 'package:saudiaaaa/core/utils/json_parse.dart';
 import 'package:saudiaaaa/core/storage/token_storage.dart';
 // ignore: unused_import
 import 'package:saudiaaaa/features/auth/domain/entities/auth_user.dart';
@@ -173,6 +174,12 @@ void main() {
         expect(expense.amount, isA<double>());
         expect(expense.category, isNotEmpty);
       }
+    }, timeout: const Timeout(Duration(seconds: 45)));
+
+    test('notifications unread-count returns an int for the bell badge',
+        () async {
+      final json = await api.getObject(ApiEndpoints.notificationsUnreadCount);
+      expect(asInt(json['count']), greaterThanOrEqualTo(0));
     }, timeout: const Timeout(Duration(seconds: 45)));
 
     test('bank accounts and transactions parse, amounts in major units',

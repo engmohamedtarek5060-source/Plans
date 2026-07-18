@@ -5,6 +5,7 @@ import 'package:saudiaaaa/features/sales/data/models/invoice_model.dart';
 import 'package:saudiaaaa/features/sales/domain/entities/invoice.dart';
 import 'package:saudiaaaa/features/treasury/data/models/bank_account_model.dart';
 import 'package:saudiaaaa/features/inventory/data/models/product_model.dart';
+import 'package:saudiaaaa/features/notifications/data/models/notification_model.dart';
 
 /// Guards the two traps this backend sets:
 ///  1. money arrives as JSON *strings* (Prisma Decimal), not numbers;
@@ -153,6 +154,43 @@ void main() {
       expect(debit.amount, closeTo(3000, 0.001));
       expect(debit.isCredit, isFalse);
       expect(debit.isReconciled, isTrue);
+    });
+  });
+
+  group('NotificationModel', () {
+    // The backend ships no schema for notifications, so parsing tries several
+    // conventional field names. These pin that fallback behaviour.
+    test('reads conventional title/body/read fields', () {
+      final n = NotificationModel.fromJson({
+        'id': 7,
+        'title': 'Invoice paid',
+        'message': 'INV-0001 was settled',
+        'createdAt': '2026-07-17T10:00:00.000Z',
+        'isRead': false,
+      });
+      expect(n.title, 'Invoice paid');
+      expect(n.body, 'INV-0001 was settled');
+      expect(n.isRead, isFalse);
+      expect(n.createdAt, isNotNull);
+    });
+
+    test('treats a readAt timestamp as read when no flag is present', () {
+      final n = NotificationModel.fromJson({
+        'id': 8,
+        'subject': 'Low stock',
+        'body': 'Steel Bolt M8 is low',
+        'readAt': '2026-07-17T11:00:00.000Z',
+      });
+      expect(n.title, 'Low stock');
+      expect(n.isRead, isTrue);
+    });
+
+    test('degrades to a readable row on a completely unexpected shape', () {
+      final n = NotificationModel.fromJson({'id': 9});
+      expect(n.id, '9');
+      expect(n.title, 'Notification');
+      expect(n.body, '');
+      expect(n.isRead, isFalse);
     });
   });
 

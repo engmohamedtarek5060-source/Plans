@@ -12,6 +12,8 @@ import 'package:saudiaaaa/features/dashboard/presentation/screens/dashboard_scre
 import 'package:saudiaaaa/features/inventory/presentation/screens/inventory_screen.dart';
 import 'package:saudiaaaa/features/more/presentation/screens/more_screen.dart';
 import 'package:saudiaaaa/features/sales/presentation/screens/sales_screen.dart';
+import 'package:saudiaaaa/features/notifications/presentation/controllers/notifications_controller.dart';
+import 'package:saudiaaaa/features/notifications/presentation/widgets/notifications_sheet.dart';
 import 'package:saudiaaaa/features/shell/presentation/providers/shell_provider.dart';
 import 'package:saudiaaaa/features/treasury/presentation/screens/treasury_screen.dart';
 
@@ -173,33 +175,44 @@ class MainShellScreen extends ConsumerWidget {
   }
 }
 
-class _NotificationButton extends StatelessWidget {
+class _NotificationButton extends ConsumerWidget {
   const _NotificationButton({required this.colors});
 
   final AppColorExtension colors;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Real unread count; resolves to 0 on any error (see the provider).
+    final unread = ref.watch(unreadNotificationsProvider).valueOrNull ?? 0;
+
+    final bell = Icon(
+      Icons.notifications_outlined,
+      color: colors.textPrimary,
+      size: 22,
+    );
+
     return Material(
       color: colors.inputFill,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: () {},
+        onTap: () => NotificationsSheet.show(context),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xs + 2),
-          child: Badge(
-            label: const Text(
-              '3',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-            ),
-            backgroundColor: AppColors.brandPrimary,
-            child: Icon(
-              Icons.notifications_outlined,
-              color: colors.textPrimary,
-              size: 22,
-            ),
-          ),
+          // Show the badge only when there is something unread.
+          child: unread == 0
+              ? bell
+              : Badge(
+                  label: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  backgroundColor: AppColors.brandPrimary,
+                  child: bell,
+                ),
         ),
       ),
     );
