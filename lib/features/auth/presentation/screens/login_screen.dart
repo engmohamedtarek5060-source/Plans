@@ -124,7 +124,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         opacity: _fadeAnimation,
                         child: SlideTransition(
                           position: _slideAnimation,
-                          child: IntrinsicHeight(
+                          // Keep the form a comfortable reading width and
+                          // centered on tablets instead of stretching fields
+                          // edge to edge.
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 480),
+                              child: IntrinsicHeight(
                             child: Form(
                               key: _formKey,
                               child: Column(
@@ -279,6 +285,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   const SizedBox(height: AppSpacing.md),
                                 ],
                               ),
+                            ),
+                          ),
                             ),
                           ),
                         ),

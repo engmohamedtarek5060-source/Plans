@@ -32,9 +32,20 @@ class PlansApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       builder: (context, child) {
-        return Directionality(
-          textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
-          child: child ?? const SizedBox.shrink(),
+        // Clamp the OS font scale so an extreme accessibility setting can't
+        // overflow tight layouts, while still honouring larger text up to a
+        // safe bound.
+        final mq = MediaQuery.of(context);
+        final scale = mq.textScaler.clamp(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.3,
+        );
+        return MediaQuery(
+          data: mq.copyWith(textScaler: scale),
+          child: Directionality(
+            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       home: const AppRoot(),

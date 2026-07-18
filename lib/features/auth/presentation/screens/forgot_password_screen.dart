@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/constants/app_strings.dart';
 import 'package:saudiaaaa/core/providers/locale_provider.dart';
+import 'package:saudiaaaa/core/responsive/responsive_center.dart';
 import 'package:saudiaaaa/core/theme/app_colors.dart';
 import 'package:saudiaaaa/core/theme/app_effects.dart';
 import 'package:saudiaaaa/core/theme/app_spacing.dart';
@@ -69,9 +70,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
         child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
-            child: Padding(
+            // Scrollable so the fixed-height content never overflows in
+            // landscape or on short screens; centered to a readable width.
+            child: SingleChildScrollView(
               padding: AppSpacing.screenPadding,
-              child: Column(
+              child: ResponsiveCenter(
+                maxWidth: 480,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Align(
@@ -169,7 +174,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                       ],
                     ),
                   ),
-                  const Spacer(),
+                  // A scroll view has unbounded height, so a fixed gap
+                  // replaces the former Spacer.
+                  const SizedBox(height: AppSpacing.xxl),
                   CustomPrimaryButton(
                     label: AppStrings.backToLogin(isArabic),
                     onPressed: () => Navigator.of(context).pop(),
@@ -177,6 +184,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                   ),
                   const SizedBox(height: AppSpacing.md),
                 ],
+              ),
               ),
             ),
           ),

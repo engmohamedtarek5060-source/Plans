@@ -1,6 +1,5 @@
 import 'package:saudiaaaa/core/utils/json_parse.dart';
 import 'package:saudiaaaa/features/sales/data/models/invoice_model.dart';
-import 'package:saudiaaaa/features/sales/domain/entities/invoice.dart';
 import 'package:saudiaaaa/features/sales/domain/entities/invoice_detail.dart';
 
 /// GET /sales/invoices/{id}

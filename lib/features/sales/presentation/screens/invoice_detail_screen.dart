@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/constants/app_strings.dart';
 import 'package:saudiaaaa/core/providers/locale_provider.dart';
+import 'package:saudiaaaa/core/responsive/responsive_center.dart';
 import 'package:saudiaaaa/core/theme/app_colors.dart';
 import 'package:saudiaaaa/core/theme/app_spacing.dart';
 import 'package:saudiaaaa/core/utils/error_message.dart';
@@ -49,7 +50,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
               retryLabel: AppStrings.retry(isArabic),
               onRetry: () => ref.invalidate(invoiceDetailProvider(invoiceId)),
             ),
-            data: (detail) => _Body(detail: detail, isArabic: isArabic, locale: locale),
+            data: (detail) => ResponsiveCenter(
+              child: _Body(detail: detail, isArabic: isArabic, locale: locale),
+            ),
           ),
         ),
       ),

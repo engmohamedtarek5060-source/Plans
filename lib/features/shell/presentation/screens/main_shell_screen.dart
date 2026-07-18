@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/constants/app_strings.dart';
 import 'package:saudiaaaa/core/providers/locale_provider.dart';
+import 'package:saudiaaaa/core/responsive/responsive.dart';
+import 'package:saudiaaaa/core/responsive/responsive_center.dart';
 import 'package:saudiaaaa/core/theme/app_colors.dart';
 import 'package:saudiaaaa/core/theme/app_effects.dart';
 import 'package:saudiaaaa/core/theme/app_spacing.dart';
@@ -48,6 +50,7 @@ class MainShellScreen extends ConsumerWidget {
                   AppSpacing.md,
                   AppSpacing.sm,
                 ),
+                child: ResponsiveCenter(
                 child: GlassSurface(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
@@ -108,11 +111,16 @@ class MainShellScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                ),
               ),
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 88),
+                // Leave room for the floating bottom nav; a touch less in
+                // landscape where vertical space is scarce.
+                padding: EdgeInsets.only(
+                  bottom: context.isLandscape ? 72 : 88,
+                ),
                 child: AnimatedSwitcher(
                   duration: AppEffects.normal,
                   switchInCurve: AppEffects.easeOut,
@@ -131,7 +139,9 @@ class MainShellScreen extends ConsumerWidget {
                   },
                   child: KeyedSubtree(
                     key: ValueKey<int>(currentIndex),
-                    child: _screens[currentIndex],
+                    // Every main screen is centered to a readable width on
+                    // large screens; a no-op on phones.
+                    child: ResponsiveCenter(child: _screens[currentIndex]),
                   ),
                 ),
               ),

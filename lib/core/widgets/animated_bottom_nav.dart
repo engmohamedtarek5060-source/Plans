@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:saudiaaaa/core/responsive/responsive.dart';
+import 'package:saudiaaaa/core/responsive/responsive_center.dart';
 import 'package:saudiaaaa/core/theme/app_colors.dart';
 import 'package:saudiaaaa/core/theme/app_spacing.dart';
 
@@ -66,7 +68,14 @@ class _AnimatedBottomNavState extends State<AnimatedBottomNav>
       ),
       child: SafeArea(
         top: false,
-        child: ClipRRect(
+        // Keep the bar aligned with the centered content on wide screens
+        // rather than letting five items spread across a whole tablet.
+        // heightFactor: 1 so the Align sizes to the bar, not the whole screen
+        // (the bottomNavigationBar slot passes loose vertical constraints).
+        child: ResponsiveCenter(
+          maxWidth: Responsive.maxContentWidth,
+          heightFactor: 1,
+          child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -168,6 +177,7 @@ class _AnimatedBottomNavState extends State<AnimatedBottomNav>
               ),
             ),
           ),
+        ),
         ),
       ),
     );
