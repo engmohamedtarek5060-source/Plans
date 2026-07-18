@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:saudiaaaa/screens/inventory/views/widgets/alert_main%20_content.dart';
+import 'package:saudiaaaa/screens/inventory/views/widgets/alert_main_content.dart';
 import 'package:saudiaaaa/screens/inventory/views/widgets/alert_top_row.dart';
 
 class AlertContainer extends StatelessWidget {

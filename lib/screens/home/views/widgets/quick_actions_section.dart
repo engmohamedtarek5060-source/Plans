@@ -4,7 +4,7 @@ import 'package:saudiaaaa/screens/financial_reports/views/financial_reports_scre
 import 'package:saudiaaaa/screens/financial_reports/views/general_accounts_screen.dart';
 import 'package:saudiaaaa/screens/inventory/views/inventory_screen.dart'; // إضافة import المخزون
 import 'package:saudiaaaa/screens/sales/views/sales_screen.dart'; // إضافة import المبيعات
-import 'package:saudiaaaa/screens/treasury/views/treasury_screen.dart'; // إضافة import النقدية والبنوك
+import 'package:saudiaaaa/screens/Treasury/views/treasury_screen.dart'; // إضافة import النقدية والبنوك
 import 'quick_action_container.dart';
 
 class QuickActionsSection extends StatelessWidget {

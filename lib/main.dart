@@ -1,49 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:saudiaaaa/screens/login/views/forgot_password_screen.dart';
-import 'package:saudiaaaa/screens/login/views/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:saudiaaaa/app.dart';
+import 'package:saudiaaaa/core/di/app_bloc_providers.dart';
+import 'package:saudiaaaa/core/di/app_dependencies.dart';
 
 void main() {
-  runApp(const MyApp());
-}
+  WidgetsFlutterBinding.ensureInitialized();
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  // Inter and Tajawal ship in assets/google_fonts/. Without this, google_fonts
+  // downloads them from fonts.gstatic.com on first paint — which delays the
+  // first frame and throws an unhandled exception on a slow or offline
+  // network. Fonts are a hard dependency of the UI, not a runtime fetch.
+  GoogleFonts.config.allowRuntimeFetching = false;
 
-  @override
-  Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: Color(0xFFFFF8E1),
-        systemNavigationBarIconBrightness: Brightness.dark,
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+    ),
+  );
+
+  final dependencies = AppDependencies.create();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        // Riverpod-side features share the same client as the Bloc-side auth,
+        // so one token and one 401 channel govern every request.
+        apiServiceProvider.overrideWithValue(dependencies.apiService),
+      ],
+      child: AppBlocProviders(
+        dependencies: dependencies,
+        child: const PlansApp(),
       ),
-    );
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'تسجيل الدخول',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.white,
-          primary: const Color(0xFFE65100),
-          secondary: const Color(0xFF4CAF50),
-          background: const Color(0xFFFFF8E1),
-        ),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFFFF8E1),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-        ),
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const LoginScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-      },
-    );
-  }
+    ),
+  );
 }

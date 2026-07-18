@@ -8,7 +8,7 @@ import 'package:saudiaaaa/screens/approvals/views/approvals_screen.dart';
 import 'package:saudiaaaa/screens/inventory/views/inventory_screen.dart';
 import 'package:saudiaaaa/screens/more/views/more_screen_view.dart';
 import 'package:saudiaaaa/screens/sales/views/sales_screen.dart';
-import 'package:saudiaaaa/screens/treasury/views/treasury_screen.dart';
+import 'package:saudiaaaa/screens/Treasury/views/treasury_screen.dart';
 import 'package:saudiaaaa/screens/financial_reports/views/financial_reports_screen.dart'; // إضافة الاستيراد
 
 // Main Home Screen Widget

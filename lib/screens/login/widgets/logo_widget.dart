@@ -21,7 +21,7 @@ class LogoWidget extends StatelessWidget {
         ),
         child: ClipOval(
           child: Image.asset(
-            'assets/images/logo.png.jpeg',
+            'assets/images/logo.jpeg',
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(

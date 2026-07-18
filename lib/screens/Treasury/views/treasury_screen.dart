@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:saudiaaaa/screens/Treasury/views/widgets/accounts_section.dart';
 import 'package:saudiaaaa/screens/Treasury/views/widgets/recent_transactions_section.dart';
 import 'package:saudiaaaa/screens/Treasury/views/widgets/transction_section.dart';
-import 'package:saudiaaaa/screens/treasury/views/widgets/total_balance_container.dart';
+import 'package:saudiaaaa/screens/Treasury/views/widgets/total_balance_container.dart';
 
 class TreasuryScreen extends StatelessWidget {
   final bool isEnglish;

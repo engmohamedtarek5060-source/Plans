@@ -1,6 +1,6 @@
 // screens/financial_reports/views/widgets/main_indicators.dart
 import 'package:flutter/material.dart';
-import 'package:saudiaaaa/screens/treasury/views/treasury_screen.dart';
+import 'package:saudiaaaa/screens/Treasury/views/treasury_screen.dart';
 import 'package:saudiaaaa/screens/financial_reports/views/financial_reports_screen.dart'; // إضافة الاستيراد
 
 class MainIndicators extends StatelessWidget {
