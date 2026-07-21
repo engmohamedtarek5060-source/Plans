@@ -3,6 +3,7 @@ import 'package:saudiaaaa/core/network/api_config.dart';
 import 'package:saudiaaaa/core/network/api_exception.dart';
 import 'package:saudiaaaa/core/network/interceptors/auth_interceptor.dart';
 import 'package:saudiaaaa/core/network/interceptors/logging_interceptor.dart';
+import 'package:saudiaaaa/core/network/interceptors/retry_interceptor.dart';
 import 'package:saudiaaaa/core/network/session_events.dart';
 import 'package:saudiaaaa/core/storage/token_storage.dart';
 import 'package:saudiaaaa/core/utils/json_parse.dart';
@@ -34,6 +35,9 @@ class ApiService {
         sessionEvents: sessionEvents,
       ),
       const LoggingInterceptor(),
+      // Last, so a retried request re-enters the chain above it and is signed
+      // with the current token rather than replaying a stale header.
+      RetryInterceptor(dio: _dio),
     ]);
   }
 

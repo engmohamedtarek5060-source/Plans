@@ -74,7 +74,8 @@ class NotificationsSheet extends ConsumerWidget {
                       ),
                     ),
                     // Only offer "mark all read" when there is something to read.
-                    if (asyncList.valueOrNull?.any((n) => !n.isRead) ?? false)
+                    if (asyncList.valueOrNull?.items.any((n) => !n.isRead) ??
+                        false)
                       TextButton(
                         onPressed: () => ref
                             .read(notificationsListProvider.notifier)
@@ -106,8 +107,8 @@ class NotificationsSheet extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  data: (items) {
-                    if (items.isEmpty) {
+                  data: (data) {
+                    if (data.isEmpty) {
                       return ListView(
                         controller: scrollController,
                         children: [
@@ -121,20 +122,52 @@ class NotificationsSheet extends ConsumerWidget {
                         ],
                       );
                     }
-                    return ListView.separated(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        0,
-                        AppSpacing.lg,
-                        AppSpacing.xl,
-                      ),
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.xs),
-                      itemBuilder: (context, i) => _NotificationTile(
-                        notification: items[i],
-                        locale: locale,
+
+                    final items = data.items;
+                    // One trailing slot for the load-more footer, so the
+                    // spinner scrolls with the list instead of pinning to the
+                    // sheet and covering the last row.
+                    final itemCount = items.length + (data.hasMore ? 1 : 0);
+
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        // Prefetch a screen early so the next page is usually
+                        // there by the time the user reaches the end.
+                        final metrics = notification.metrics;
+                        if (metrics.axis == Axis.vertical &&
+                            metrics.extentAfter < 300) {
+                          ref
+                              .read(notificationsListProvider.notifier)
+                              .loadMore();
+                        }
+                        return false;
+                      },
+                      child: ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          0,
+                          AppSpacing.lg,
+                          AppSpacing.xl,
+                        ),
+                        itemCount: itemCount,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.xs),
+                        itemBuilder: (context, i) {
+                          if (i >= items.length) {
+                            return _LoadMoreFooter(
+                              error: data.loadMoreError,
+                              isArabic: isArabic,
+                              onRetry: () => ref
+                                  .read(notificationsListProvider.notifier)
+                                  .loadMore(),
+                            );
+                          }
+                          return _NotificationTile(
+                            notification: items[i],
+                            locale: locale,
+                          );
+                        },
                       ),
                     );
                   },
@@ -144,6 +177,63 @@ class NotificationsSheet extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Trailing row while more pages exist: a spinner normally, or an inline retry
+/// if the append failed.
+///
+/// The failure is shown here rather than replacing the sheet with a full error
+/// state — the pages already loaded are still valid and still useful.
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({
+    required this.error,
+    required this.isArabic,
+    required this.onRetry,
+  });
+
+  final Object? error;
+  final bool isArabic;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Column(
+          children: [
+            Text(
+              describeError(error!, isArabic),
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: context.appColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(AppStrings.retry(isArabic)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Center(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.brandPrimary,
+          ),
+        ),
+      ),
     );
   }
 }
