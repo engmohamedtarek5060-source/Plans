@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +6,7 @@ import 'package:saudiaaaa/core/di/app_bloc_providers.dart';
 import 'package:saudiaaaa/core/di/app_dependencies.dart';
 import 'package:saudiaaaa/core/responsive/responsive.dart';
 import 'package:saudiaaaa/features/auth/presentation/screens/login_screen.dart';
+import 'package:saudiaaaa/features/role/presentation/screens/role_selection_screen.dart';
 
 /// In-memory secure storage stand-in (platform storage is unavailable under
 /// `flutter test`).
@@ -31,7 +30,11 @@ class _InMemoryStore implements SecureKeyValueStore {
 }
 
 Widget _app(AppDependencies deps) => ProviderScope(
-      overrides: [apiServiceProvider.overrideWithValue(deps.apiService)],
+      overrides: [
+        apiServiceProvider.overrideWithValue(deps.apiService),
+        roleStorageProvider.overrideWithValue(deps.roleStorage),
+        settingsStorageProvider.overrideWithValue(deps.settingsStorage),
+      ],
       child: AppBlocProviders(
         dependencies: deps,
         child: const PlansApp(),
@@ -47,6 +50,36 @@ const _sizes = <String, Size>{
   'small tablet': Size(600, 960),
   'large tablet': Size(840, 1120),
 };
+
+/// Pumps the app at [size] and returns any RenderFlex overflows seen during
+/// layout, which otherwise only surface as console noise.
+Future<List<String>> _pumpAppAtSize(
+  WidgetTester tester,
+  String label,
+  Size size,
+  AppDependencies deps,
+) async {
+  final overflows = <String>[];
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    if (details.exceptionAsString().contains('overflowed')) {
+      overflows.add('$label: ${details.exceptionAsString()}');
+    }
+    previousOnError?.call(details);
+  };
+
+  // Constant ratio so the logical size equals `size`.
+  tester.view.devicePixelRatio = 1.0;
+  tester.view.physicalSize = size;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await tester.pumpWidget(_app(deps));
+  await tester.pumpAndSettle();
+
+  FlutterError.onError = previousOnError;
+  return overflows;
+}
 
 void main() {
   group('Responsive helper', () {
@@ -65,33 +98,33 @@ void main() {
     });
   });
 
+  group('Role selection screen renders without overflow at every size', () {
+    for (final entry in _sizes.entries) {
+      testWidgets(entry.key, (tester) async {
+        // Empty store: no role chosen, which is what puts the selection screen
+        // in front of the login screen on a first launch.
+        final deps = AppDependencies.create(store: _InMemoryStore());
+        final overflows =
+            await _pumpAppAtSize(tester, entry.key, entry.value, deps);
+
+        expect(find.byType(RoleSelectionScreen), findsOneWidget,
+            reason: 'role selection should render at ${entry.key}');
+        expect(overflows, isEmpty, reason: overflows.join('\n'));
+      });
+    }
+  });
+
   group('Login screen renders without overflow at every size', () {
     for (final entry in _sizes.entries) {
       testWidgets(entry.key, (tester) async {
-        // Any RenderFlex overflow reports as a FlutterError during layout;
-        // capture it so the test fails loudly if a size breaks.
-        final overflows = <String>[];
-        final previousOnError = FlutterError.onError;
-        FlutterError.onError = (details) {
-          if (details.exceptionAsString().contains('overflowed')) {
-            overflows.add('${entry.key}: ${details.exceptionAsString()}');
-          }
-          previousOnError?.call(details);
-        };
+        // A role is already chosen, so the gate falls through to the session
+        // check and — with no token — the login screen.
+        final store = _InMemoryStore();
+        await store.write(key: 'plans.role', value: 'company');
 
-        tester.view.physicalSize = entry.value * tester.view.devicePixelRatio;
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        // Constant ratio so the logical size equals entry.value.
-        tester.view.devicePixelRatio = 1.0;
-        tester.view.physicalSize = entry.value;
-
-        final deps = AppDependencies.create(store: _InMemoryStore());
-        await tester.pumpWidget(_app(deps));
-        await tester.pumpAndSettle();
-
-        FlutterError.onError = previousOnError;
+        final deps = AppDependencies.create(store: store);
+        final overflows =
+            await _pumpAppAtSize(tester, entry.key, entry.value, deps);
 
         expect(find.byType(LoginScreen), findsOneWidget,
             reason: 'login should render at ${entry.key}');

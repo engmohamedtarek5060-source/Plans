@@ -30,6 +30,7 @@ class AppBlocProviders extends StatelessWidget {
             );
             return AuthCubit(
               loginUser: LoginUser(repository),
+              registerUser: RegisterUser(repository),
               logoutUser: LogoutUser(repository),
               restoreSession: RestoreSession(repository),
               sessionEvents: dependencies.sessionEvents,

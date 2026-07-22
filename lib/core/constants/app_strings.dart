@@ -94,8 +94,49 @@ abstract final class AppStrings {
   static String noAccount(bool isArabic) =>
       isArabic ? 'ليس لديك حساب؟' : "Don't have an account?";
   static String signUp(bool isArabic) => isArabic ? 'إنشاء حساب' : 'Sign up';
-  static String demoAccounts(bool isArabic) =>
-      isArabic ? 'حسابات تجريبية' : 'Demo accounts';
+  static String emailRequired(bool isArabic) =>
+      isArabic ? 'أدخل البريد الإلكتروني' : 'Enter your email';
+  static String emailInvalid(bool isArabic) =>
+      isArabic ? 'بريد إلكتروني غير صالح' : 'Enter a valid email address';
+  static String passwordRequired(bool isArabic) =>
+      isArabic ? 'أدخل كلمة المرور' : 'Enter your password';
+  static String passwordTooShort(bool isArabic, int min) => isArabic
+      ? 'كلمة المرور يجب أن تكون $min أحرف على الأقل'
+      : 'Password must be at least $min characters';
+  static String confirmPasswordRequired(bool isArabic) =>
+      isArabic ? 'أعد إدخال كلمة المرور' : 'Re-enter your password';
+  static String passwordsDoNotMatch(bool isArabic) =>
+      isArabic ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match';
+  static String nameRequired(bool isArabic) =>
+      isArabic ? 'أدخل اسمك' : 'Enter your name';
+  static String companyNameRequired(bool isArabic) =>
+      isArabic ? 'أدخل اسم الشركة' : 'Enter your company name';
+
+  // Registration
+  static String fullName(bool isArabic) =>
+      isArabic ? 'الاسم الكامل' : 'Full name';
+  static String companyName(bool isArabic) =>
+      isArabic ? 'اسم الشركة' : 'Company name';
+  static String confirmPassword(bool isArabic) =>
+      isArabic ? 'تأكيد كلمة المرور' : 'Confirm password';
+  static String registerTitle(bool isArabic) =>
+      isArabic ? 'إنشاء حساب شركة' : 'Create a company account';
+  static String registerSubtitle(bool isArabic) => isArabic
+      ? 'أنشئ شركتك وابدأ الإدارة'
+      : 'Set up your company and start managing it';
+  static String createAccount(bool isArabic) =>
+      isArabic ? 'إنشاء الحساب' : 'Create account';
+  static String haveAccount(bool isArabic) =>
+      isArabic ? 'لديك حساب بالفعل؟' : 'Already have an account?';
+  static String emailAlreadyRegistered(bool isArabic) => isArabic
+      ? 'هذا البريد الإلكتروني مسجل بالفعل. سجّل الدخول بدلاً من ذلك.'
+      : 'That email is already registered. Sign in instead.';
+
+  /// Shown to the client role, which has no self-registration path: client
+  /// access is provisioned by the company the client buys from.
+  static String clientAccountsProvisioned(bool isArabic) => isArabic
+      ? 'يتم إنشاء حسابات العملاء من قبل الشركة. تواصل معها للحصول على صلاحية الدخول.'
+      : 'Client accounts are created by your company. Contact them for access.';
   static String invalidCredentials(bool isArabic) => isArabic
       ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
       : 'Invalid email or password';
@@ -112,4 +153,36 @@ abstract final class AppStrings {
       isArabic ? 'إرسال الرابط' : 'Send reset link';
   static String backToLogin(bool isArabic) =>
       isArabic ? 'العودة لتسجيل الدخول' : 'Back to sign in';
+
+  // Role selection
+  static String chooseRoleTitle(bool isArabic) =>
+      isArabic ? 'كيف ستستخدم التطبيق؟' : 'How will you use the app?';
+  static String chooseRoleSubtitle(bool isArabic) => isArabic
+      ? 'اختر نوع حسابك للمتابعة'
+      : 'Choose your account type to continue';
+  static String roleClient(bool isArabic) => isArabic ? 'عميل' : 'Client';
+  static String roleClientDescription(bool isArabic) => isArabic
+      ? 'تابع طلباتك وفواتيرك'
+      : 'Follow your orders and invoices';
+  static String roleCompany(bool isArabic) =>
+      isArabic ? 'صاحب شركة' : 'Company Owner';
+  static String roleCompanyDescription(bool isArabic) => isArabic
+      ? 'إدارة المبيعات والمخزون والخزينة'
+      : 'Manage sales, inventory and treasury';
+  static String continueLabel(bool isArabic) => isArabic ? 'متابعة' : 'Continue';
+  static String selected(bool isArabic) => isArabic ? 'محدد' : 'Selected';
+  static String roleSaveFailed(bool isArabic) => isArabic
+      ? 'تعذر حفظ اختيارك. حاول مرة أخرى'
+      : "Couldn't save your choice. Please try again";
+  static String switchRole(bool isArabic) =>
+      isArabic ? 'تغيير نوع الحساب' : 'Switch account type';
+
+  // Client
+  static String clientHomeTitle(bool isArabic) =>
+      isArabic ? 'بوابة العميل' : 'Client Portal';
+  static String clientHomeEmptyTitle(bool isArabic) =>
+      isArabic ? 'لا توجد طلبات بعد' : 'Nothing here yet';
+  static String clientHomeEmptySubtitle(bool isArabic) => isArabic
+      ? 'ستظهر طلباتك وفواتيرك هنا فور توفرها'
+      : 'Your orders and invoices will appear here';
 }

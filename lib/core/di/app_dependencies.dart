@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/network/api_service.dart';
 import 'package:saudiaaaa/core/network/session_events.dart';
+import 'package:saudiaaaa/core/storage/role_storage.dart';
+import 'package:saudiaaaa/core/storage/settings_storage.dart';
 import 'package:saudiaaaa/core/storage/token_storage.dart';
 export 'package:saudiaaaa/core/storage/token_storage.dart'
     show SecureKeyValueStore;
@@ -13,11 +15,15 @@ export 'package:saudiaaaa/core/storage/token_storage.dart'
 class AppDependencies {
   AppDependencies._({
     required this.tokenStorage,
+    required this.roleStorage,
+    required this.settingsStorage,
     required this.sessionEvents,
     required this.apiService,
   });
 
   final TokenStorage tokenStorage;
+  final RoleStorage roleStorage;
+  final SettingsStorage settingsStorage;
   final SessionEvents sessionEvents;
   final ApiService apiService;
 
@@ -29,6 +35,8 @@ class AppDependencies {
     final sessionEvents = SessionEvents();
     return AppDependencies._(
       tokenStorage: tokenStorage,
+      roleStorage: RoleStorage(store: store),
+      settingsStorage: SettingsStorage(store: store),
       sessionEvents: sessionEvents,
       apiService: ApiService(
         tokenStorage: tokenStorage,
@@ -42,6 +50,22 @@ class AppDependencies {
 final apiServiceProvider = Provider<ApiService>(
   (ref) => throw UnimplementedError(
     'apiServiceProvider must be overridden in ProviderScope',
+  ),
+);
+
+/// Overridden in `main` with the instance from [AppDependencies], so the role
+/// and the session share one underlying store.
+final roleStorageProvider = Provider<RoleStorage>(
+  (ref) => throw UnimplementedError(
+    'roleStorageProvider must be overridden in ProviderScope',
+  ),
+);
+
+/// Overridden in `main` with the instance from [AppDependencies], so the theme
+/// and language preferences share the store the session and role already use.
+final settingsStorageProvider = Provider<SettingsStorage>(
+  (ref) => throw UnimplementedError(
+    'settingsStorageProvider must be overridden in ProviderScope',
   ),
 );
 
