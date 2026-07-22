@@ -12,8 +12,11 @@ class PlansApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    // Watch the state so a language change rebuilds this and, through it, every
+    // screen below — that is what makes the switch take effect app-wide.
     final locale = ref.watch(localeProvider);
-    final isArabic = locale.languageCode == 'ar';
+    final languages = ref.watch(localeProvider.notifier);
+    final isArabic = languages.isArabic;
 
     return MaterialApp(
       title: 'Plans ERP',
@@ -43,7 +46,9 @@ class PlansApp extends ConsumerWidget {
         return MediaQuery(
           data: mq.copyWith(textScaler: scale),
           child: Directionality(
-            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+            // From the language itself, so direction and strings can never
+            // disagree about which language is active.
+            textDirection: languages.textDirection,
             child: child ?? const SizedBox.shrink(),
           ),
         );
