@@ -27,6 +27,12 @@ final class NetworkAuthFailure extends AuthFailure {
   List<Object?> get props => [message, messageAr];
 }
 
+/// The email is already taken (409 on /auth/register). Actionable in a way the
+/// generic failures are not — the user should sign in instead of retrying.
+final class EmailAlreadyRegisteredFailure extends AuthFailure {
+  const EmailAlreadyRegisteredFailure();
+}
+
 /// The session ended server-side (a 401 on any authenticated call).
 final class SessionExpiredFailure extends AuthFailure {
   const SessionExpiredFailure();

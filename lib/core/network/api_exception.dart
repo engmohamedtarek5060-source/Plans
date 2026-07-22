@@ -10,6 +10,11 @@ enum ApiErrorKind {
   unauthorized,
   forbidden,
   notFound,
+
+  /// The request clashed with existing state — on `/auth/register`, an email
+  /// that is already taken. Distinct from [validation]: the payload was
+  /// well-formed, the server just cannot accept it.
+  conflict,
   validation,
   server,
   badResponse,
@@ -145,6 +150,18 @@ class ApiException implements Exception {
         kind: ApiErrorKind.notFound,
         message: serverMessage ?? 'The requested data was not found.',
         messageAr: 'لم يتم العثور على البيانات المطلوبة.',
+        statusCode: status,
+        code: code,
+      );
+    }
+
+    if (status == 409) {
+      // The backend's message is the actionable one ("Email already
+      // registered") and it ships English-only, so the Arabic side is ours.
+      return ApiException(
+        kind: ApiErrorKind.conflict,
+        message: serverMessage ?? 'That already exists.',
+        messageAr: 'هذا مسجل بالفعل.',
         statusCode: status,
         code: code,
       );

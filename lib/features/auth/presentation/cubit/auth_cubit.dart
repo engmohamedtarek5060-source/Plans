@@ -10,10 +10,12 @@ import 'package:saudiaaaa/features/auth/presentation/cubit/auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit({
     required LoginUser loginUser,
+    required RegisterUser registerUser,
     required LogoutUser logoutUser,
     required RestoreSession restoreSession,
     required SessionEvents sessionEvents,
   })  : _loginUser = loginUser,
+        _registerUser = registerUser,
         _logoutUser = logoutUser,
         _restoreSession = restoreSession,
         super(const AuthInitial()) {
@@ -24,6 +26,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   final LoginUser _loginUser;
+  final RegisterUser _registerUser;
   final LogoutUser _logoutUser;
   final RestoreSession _restoreSession;
   late final StreamSubscription<void> _unauthorizedSub;
@@ -67,6 +70,33 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  /// Creates a company account and signs the new owner straight in.
+  ///
+  /// Shares [AuthLoading] and the failure mapping with [login], so the register
+  /// screen's button spinner and error handling behave identically.
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+    required String companyName,
+  }) async {
+    emit(const AuthLoading());
+
+    try {
+      final user = await _registerUser(
+        name: name,
+        email: email,
+        password: password,
+        companyName: companyName,
+      );
+      emit(AuthAuthenticated(user));
+    } on ApiException catch (e) {
+      emit(AuthUnauthenticated(failure: _mapFailure(e)));
+    } catch (_) {
+      emit(const AuthUnauthenticated(failure: UnexpectedAuthFailure()));
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _logoutUser();
@@ -93,6 +123,9 @@ class AuthCubit extends Cubit<AuthState> {
         // On /auth/login a 401 means the credentials are wrong, not that a
         // session expired.
         ApiErrorKind.unauthorized => const InvalidCredentialsFailure(),
+        // 409 on /auth/register: the email is taken. Its own failure because
+        // the fix is "sign in instead", not "try again".
+        ApiErrorKind.conflict => const EmailAlreadyRegisteredFailure(),
         ApiErrorKind.validation ||
         ApiErrorKind.noInternet ||
         ApiErrorKind.timeout ||

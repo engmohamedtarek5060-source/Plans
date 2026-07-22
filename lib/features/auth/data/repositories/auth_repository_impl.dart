@@ -1,7 +1,8 @@
 import 'package:saudiaaaa/core/network/api_exception.dart';
 import 'package:saudiaaaa/core/storage/token_storage.dart';
 import 'package:saudiaaaa/features/auth/data/datasources/auth_remote_data_source.dart';
-import 'package:saudiaaaa/features/auth/data/models/auth_user_model.dart';
+import 'package:saudiaaaa/features/auth/data/models/auth_user_model.dart'
+    show AuthUserModel, AuthSessionModel;
 import 'package:saudiaaaa/features/auth/domain/entities/auth_user.dart';
 import 'package:saudiaaaa/features/auth/domain/repositories/auth_repository.dart';
 
@@ -24,13 +25,42 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email.trim(),
       password: password,
     );
+    return _persistSession(session, source: 'Login');
+  }
 
+  @override
+  Future<AuthUser> register({
+    required String name,
+    required String email,
+    required String password,
+    required String companyName,
+  }) async {
+    final session = await _remote.register(
+      name: name.trim(),
+      email: email.trim(),
+      password: password,
+      companyName: companyName.trim(),
+    );
+    // Register returns the same envelope as login, so the new account is signed
+    // in directly rather than bounced to the login screen to retype what it
+    // just submitted.
+    return _persistSession(session, source: 'Register');
+  }
+
+  /// Stores the tokens and user from an auth response, then returns the user.
+  ///
+  /// Persisting happens before returning: the token must be in place for the
+  /// first authenticated request the UI fires on landing.
+  Future<AuthUser> _persistSession(
+    AuthSessionModel session, {
+    required String source,
+  }) async {
     if (session.accessToken.isEmpty) {
-      throw ApiException.malformed('Login response contained no access token');
+      throw ApiException.malformed(
+        '$source response contained no access token',
+      );
     }
 
-    // Persist before returning: the token must be in place for the first
-    // authenticated request the UI fires on landing.
     await _tokenStorage.saveTokens(
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,

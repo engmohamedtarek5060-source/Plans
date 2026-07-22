@@ -12,6 +12,30 @@ class LoginUser {
       _repository.login(email: email, password: password);
 }
 
+/// Creates a company account and signs the new owner in.
+///
+/// There is no `role` parameter: the backend rejects one outright
+/// (`property role should not exist`) and derives the account's permissions
+/// from being a company's first user. The device-level role is a separate,
+/// local concept.
+class RegisterUser {
+  const RegisterUser(this._repository);
+  final AuthRepository _repository;
+
+  Future<AuthUser> call({
+    required String name,
+    required String email,
+    required String password,
+    required String companyName,
+  }) =>
+      _repository.register(
+        name: name,
+        email: email,
+        password: password,
+        companyName: companyName,
+      );
+}
+
 class LogoutUser {
   const LogoutUser(this._repository);
   final AuthRepository _repository;

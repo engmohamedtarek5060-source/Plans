@@ -6,19 +6,26 @@ import 'package:saudiaaaa/core/providers/locale_provider.dart';
 import 'package:saudiaaaa/core/theme/app_colors.dart';
 import 'package:saudiaaaa/core/theme/app_effects.dart';
 import 'package:saudiaaaa/core/theme/app_spacing.dart';
+import 'package:saudiaaaa/core/utils/validators.dart';
 import 'package:saudiaaaa/core/widgets/custom_primary_button.dart';
 import 'package:saudiaaaa/core/widgets/custom_text_field.dart';
 import 'package:saudiaaaa/core/widgets/glass_surface.dart';
 import 'package:saudiaaaa/core/widgets/premium_background.dart';
-import 'package:saudiaaaa/features/auth/domain/failures/auth_failure.dart';
+import 'package:saudiaaaa/features/auth/presentation/auth_failure_message.dart';
 import 'package:saudiaaaa/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:saudiaaaa/features/auth/presentation/cubit/auth_state.dart';
 import 'package:saudiaaaa/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:saudiaaaa/features/auth/presentation/screens/register_screen.dart';
+import 'package:saudiaaaa/features/role/domain/entities/user_role.dart';
 import 'package:saudiaaaa/features/auth/presentation/widgets/login_language_toggle.dart';
 import 'package:saudiaaaa/features/auth/presentation/widgets/login_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, required this.role});
+
+  /// The entry role chosen on first launch. Decides whether registration is
+  /// offered: only a company can be created through `/auth/register`.
+  final UserRole role;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -71,17 +78,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         );
   }
 
-  String _failureMessage(AuthFailure failure, bool isArabic) {
-    return switch (failure) {
-      InvalidCredentialsFailure() => AppStrings.invalidCredentials(isArabic),
-      // Carries a specific cause (offline, timeout, server error) — showing it
-      // beats a generic "something went wrong".
-      NetworkAuthFailure(:final localized) => localized(isArabic),
-      SessionExpiredFailure() => AppStrings.sessionExpired(isArabic),
-      UnexpectedAuthFailure() => AppStrings.errorTitle(isArabic),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final isArabic = ref.watch(localeProvider.notifier).isArabic;
@@ -98,7 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               if (state is AuthUnauthenticated && state.failure != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(_failureMessage(state.failure!, isArabic)),
+                    content: Text(state.failure!.localized(isArabic)),
                     backgroundColor: colors.error,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
@@ -177,20 +173,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           prefixIcon: Icons.alternate_email_rounded,
                                           keyboardType:
                                               TextInputType.emailAddress,
-                                          validator: (value) {
-                                            if (value == null ||
-                                                value.trim().isEmpty) {
-                                              return isArabic
-                                                  ? 'أدخل البريد الإلكتروني'
-                                                  : 'Enter your email';
-                                            }
-                                            if (!value.contains('@')) {
-                                              return isArabic
-                                                  ? 'بريد إلكتروني غير صالح'
-                                                  : 'Invalid email';
-                                            }
-                                            return null;
-                                          },
+                                          validator: (value) => Validators.email(
+                                            value,
+                                            isArabic: isArabic,
+                                          ),
                                         ),
                                         const SizedBox(height: AppSpacing.md),
                                         CustomTextField(
@@ -212,15 +198,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                   !_obscurePassword,
                                             ),
                                           ),
-                                          validator: (value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return isArabic
-                                                  ? 'أدخل كلمة المرور'
-                                                  : 'Enter your password';
-                                            }
-                                            return null;
-                                          },
+                                          validator: (value) =>
+                                              Validators.password(
+                                            value,
+                                            isArabic: isArabic,
+                                          ),
                                         ),
                                         const SizedBox(height: AppSpacing.sm),
                                         Align(
@@ -253,35 +235,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     ),
                                   ),
                                   const Spacer(flex: 1),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        AppStrings.noAccount(isArabic),
-                                        style: TextStyle(
-                                          color: colors.textSecondary,
-                                          fontSize: 14,
+                                  // Registration provisions a company, so it is
+                                  // offered only to the company role. A client
+                                  // gets an explanation instead of a button
+                                  // that could only ever fail.
+                                  switch (widget.role) {
+                                    UserRole.company => Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            AppStrings.noAccount(isArabic),
+                                            style: TextStyle(
+                                              color: colors.textSecondary,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: isLoading
+                                                ? null
+                                                : () =>
+                                                    Navigator.of(context).push(
+                                                      MaterialPageRoute<void>(
+                                                        builder: (_) =>
+                                                            const RegisterScreen(),
+                                                      ),
+                                                    ),
+                                            child: Text(
+                                              AppStrings.signUp(isArabic),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    UserRole.client => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppSpacing.md,
+                                        ),
+                                        child: Text(
+                                          AppStrings.clientAccountsProvisioned(
+                                            isArabic,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: colors.textTertiary,
+                                            fontSize: 13,
+                                            height: 1.4,
+                                          ),
                                         ),
                                       ),
-                                      TextButton(
-                                        onPressed: () {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                isArabic
-                                                    ? 'التسجيل قريباً'
-                                                    : 'Sign up coming soon',
-                                              ),
-                                              behavior:
-                                                  SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        },
-                                        child: Text(AppStrings.signUp(isArabic)),
-                                      ),
-                                    ],
-                                  ),
+                                  },
                                   const SizedBox(height: AppSpacing.md),
                                 ],
                               ),

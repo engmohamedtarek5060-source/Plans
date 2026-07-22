@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:saudiaaaa/core/network/api_config.dart';
+import 'package:saudiaaaa/core/network/api_exception.dart';
 import 'package:saudiaaaa/core/network/interceptors/auth_interceptor.dart';
 import 'package:saudiaaaa/core/network/session_events.dart';
 import 'package:saudiaaaa/core/storage/token_storage.dart';
@@ -44,9 +45,32 @@ class _FakeAuthRepository implements AuthRepository {
   AuthUser? restored;
   int logoutCalls = 0;
 
+  /// Thrown by [register] when set, standing in for a backend rejection.
+  ApiException? registerError;
+
+  /// What the last [register] call sent, so tests can assert the payload.
+  Map<String, String>? lastRegisterArgs;
+
   @override
   Future<AuthUser> login({required String email, required String password}) async =>
       _user;
+
+  @override
+  Future<AuthUser> register({
+    required String name,
+    required String email,
+    required String password,
+    required String companyName,
+  }) async {
+    lastRegisterArgs = {
+      'name': name,
+      'email': email,
+      'password': password,
+      'companyName': companyName,
+    };
+    if (registerError != null) throw registerError!;
+    return _user;
+  }
 
   @override
   Future<void> logout() async => logoutCalls++;
@@ -57,6 +81,7 @@ class _FakeAuthRepository implements AuthRepository {
 
 AuthCubit _cubit(_FakeAuthRepository repo, SessionEvents events) => AuthCubit(
       loginUser: LoginUser(repo),
+      registerUser: RegisterUser(repo),
       logoutUser: LogoutUser(repo),
       restoreSession: RestoreSession(repo),
       sessionEvents: events,
@@ -201,6 +226,75 @@ void main() {
 
       expect(seen, hasLength(1));
       await sub.cancel();
+    });
+
+    test('a successful register signs the new owner straight in', () async {
+      final cubit = _cubit(repo, events);
+
+      await cubit.register(
+        name: 'Jane Doe',
+        email: 'jane@acme.com',
+        password: 'hunter22',
+        companyName: 'Acme Trading Co',
+      );
+
+      expect(cubit.state, const AuthAuthenticated(_user));
+      // No `role` in the payload: the backend rejects the property outright.
+      expect(repo.lastRegisterArgs, {
+        'name': 'Jane Doe',
+        'email': 'jane@acme.com',
+        'password': 'hunter22',
+        'companyName': 'Acme Trading Co',
+      });
+    });
+
+    test('a 409 on register reports the email as already taken', () async {
+      repo.registerError = const ApiException(
+        kind: ApiErrorKind.conflict,
+        message: 'Email already registered',
+        statusCode: 409,
+        code: 'CONFLICT',
+      );
+      final cubit = _cubit(repo, events);
+
+      await cubit.register(
+        name: 'Jane Doe',
+        email: 'taken@acme.com',
+        password: 'hunter22',
+        companyName: 'Acme Trading Co',
+      );
+
+      // Its own failure, not the generic one: the fix is "sign in instead".
+      expect(
+        cubit.state,
+        const AuthUnauthenticated(failure: EmailAlreadyRegisteredFailure()),
+      );
+    });
+
+    test('a validation error on register surfaces the server message',
+        () async {
+      repo.registerError = const ApiException(
+        kind: ApiErrorKind.validation,
+        message: 'password must be longer than or equal to 6 characters',
+        messageAr: 'كلمة المرور قصيرة جدًا',
+        statusCode: 400,
+        code: 'VALIDATION_ERROR',
+      );
+      final cubit = _cubit(repo, events);
+
+      await cubit.register(
+        name: 'Jane Doe',
+        email: 'jane@acme.com',
+        password: 'short',
+        companyName: 'Acme Trading Co',
+      );
+
+      final state = cubit.state as AuthUnauthenticated;
+      expect(state.failure, isA<NetworkAuthFailure>());
+      expect(
+        (state.failure! as NetworkAuthFailure).message,
+        'password must be longer than or equal to 6 characters',
+      );
     });
 
     test('logout clears local state even when the server call fails', () async {
