@@ -35,15 +35,20 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String companyName,
   }) async {
+    final trimmedEmail = email.trim();
     final session = await _remote.register(
       name: name.trim(),
-      email: email.trim(),
+      email: trimmedEmail,
       password: password,
       companyName: companyName.trim(),
     );
-    // Register returns the same envelope as login, so the new account is signed
-    // in directly rather than bounced to the login screen to retype what it
-    // just submitted.
+    // Register normally returns the same envelope as login so the new account
+    // is signed in immediately. If the account was created but tokens were
+    // omitted, fall through to login with the credentials just submitted
+    // rather than stranding the user on the register form.
+    if (session.accessToken.isEmpty) {
+      return login(email: trimmedEmail, password: password);
+    }
     return _persistSession(session, source: 'Register');
   }
 

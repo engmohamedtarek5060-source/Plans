@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/constants/app_strings.dart';
 import 'package:saudiaaaa/core/providers/locale_provider.dart';
@@ -19,9 +20,14 @@ import 'package:saudiaaaa/features/notifications/presentation/widgets/notificati
 import 'package:saudiaaaa/features/shell/presentation/providers/shell_provider.dart';
 import 'package:saudiaaaa/features/treasury/presentation/screens/treasury_screen.dart';
 
-class MainShellScreen extends ConsumerWidget {
+class MainShellScreen extends ConsumerStatefulWidget {
   const MainShellScreen({super.key});
 
+  @override
+  ConsumerState<MainShellScreen> createState() => _MainShellScreenState();
+}
+
+class _MainShellScreenState extends ConsumerState<MainShellScreen> {
   static const _screens = [
     DashboardScreen(),
     SalesScreen(),
@@ -30,156 +36,201 @@ class MainShellScreen extends ConsumerWidget {
     MoreScreen(),
   ];
 
+  static const _exitWindow = Duration(seconds: 2);
+
+  DateTime? _lastHomeBackAt;
+
+  void _handleBack(int currentIndex, bool isArabic) {
+    // From any other tab, land on Home first.
+    if (currentIndex != 0) {
+      _lastHomeBackAt = null;
+      ref.read(shellIndexProvider.notifier).setIndex(0);
+      return;
+    }
+
+    // On Home: first back shows a hint, second within the window exits.
+    final now = DateTime.now();
+    final previous = _lastHomeBackAt;
+    if (previous != null && now.difference(previous) <= _exitWindow) {
+      SystemNavigator.pop();
+      return;
+    }
+
+    _lastHomeBackAt = now;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(AppStrings.pressBackAgainToExit(isArabic)),
+          behavior: SnackBarBehavior.floating,
+          duration: _exitWindow,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+          ),
+        ),
+      );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final currentIndex = ref.watch(shellIndexProvider);
     final isArabic = ref.watch(localeProvider.notifier).isArabic;
     final colors = context.appColors;
 
-    return Scaffold(
-      extendBody: true,
-      body: PremiumBackground(
-        child: Column(
-          children: [
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                ),
-                child: ResponsiveCenter(
-                child: GlassSurface(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBack(currentIndex, isArabic);
+      },
+      child: Scaffold(
+        extendBody: true,
+        body: PremiumBackground(
+          child: Column(
+            children: [
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                    AppSpacing.md,
+                    AppSpacing.sm,
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.brandGradient,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: AppEffects.glowShadow(
-                            AppColors.brandPrimary,
-                            blur: 14,
+                  child: ResponsiveCenter(
+                    child: GlassSurface(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.brandGradient,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: AppEffects.glowShadow(
+                                AppColors.brandPrimary,
+                                blur: 14,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.insights_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
-                        ),
-                        child: const Icon(
-                          Icons.insights_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppStrings.appName(isArabic),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.3,
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppStrings.appName(isArabic),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.3,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  isArabic ? 'الفرع الرئيسي' : 'Main Branch',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: colors.textSecondary,
+                                      ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            Text(
-                              isArabic ? 'الفرع الرئيسي' : 'Main Branch',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: colors.textSecondary,
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                          ),
+                          _NotificationButton(colors: colors),
+                        ],
                       ),
-                      _NotificationButton(colors: colors),
-                    ],
+                    ),
                   ),
                 ),
+              ),
+              Expanded(
+                child: Padding(
+                  // Leave room for the floating bottom nav; a touch less in
+                  // landscape where vertical space is scarce.
+                  padding: EdgeInsets.only(
+                    bottom: context.isLandscape ? 72 : 88,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: AppEffects.normal,
+                    switchInCurve: AppEffects.easeOut,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.02),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey<int>(currentIndex),
+                      // Every main screen is centered to a readable width on
+                      // large screens; a no-op on phones.
+                      child: ResponsiveCenter(child: _screens[currentIndex]),
+                    ),
+                  ),
                 ),
               ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: AnimatedBottomNav(
+          currentIndex: currentIndex,
+          onTap: (index) {
+            _lastHomeBackAt = null;
+            ref.read(shellIndexProvider.notifier).setIndex(index);
+          },
+          items: [
+            BottomNavItem(
+              icon: Icons.grid_view_rounded,
+              activeIcon: Icons.grid_view_rounded,
+              label: AppStrings.navDashboard(isArabic),
             ),
-            Expanded(
-              child: Padding(
-                // Leave room for the floating bottom nav; a touch less in
-                // landscape where vertical space is scarce.
-                padding: EdgeInsets.only(
-                  bottom: context.isLandscape ? 72 : 88,
-                ),
-                child: AnimatedSwitcher(
-                  duration: AppEffects.normal,
-                  switchInCurve: AppEffects.easeOut,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.02),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: KeyedSubtree(
-                    key: ValueKey<int>(currentIndex),
-                    // Every main screen is centered to a readable width on
-                    // large screens; a no-op on phones.
-                    child: ResponsiveCenter(child: _screens[currentIndex]),
-                  ),
-                ),
-              ),
+            BottomNavItem(
+              icon: Icons.receipt_long_outlined,
+              activeIcon: Icons.receipt_long_rounded,
+              label: AppStrings.navSales(isArabic),
+            ),
+            BottomNavItem(
+              icon: Icons.inventory_2_outlined,
+              activeIcon: Icons.inventory_2_rounded,
+              label: AppStrings.navInventory(isArabic),
+            ),
+            BottomNavItem(
+              icon: Icons.account_balance_wallet_outlined,
+              activeIcon: Icons.account_balance_wallet_rounded,
+              label: AppStrings.navTreasury(isArabic),
+            ),
+            BottomNavItem(
+              icon: Icons.more_horiz_rounded,
+              activeIcon: Icons.more_horiz_rounded,
+              label: AppStrings.navMore(isArabic),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: AnimatedBottomNav(
-        currentIndex: currentIndex,
-        onTap: (index) =>
-            ref.read(shellIndexProvider.notifier).setIndex(index),
-        items: [
-          BottomNavItem(
-            icon: Icons.grid_view_rounded,
-            activeIcon: Icons.grid_view_rounded,
-            label: AppStrings.navDashboard(isArabic),
-          ),
-          BottomNavItem(
-            icon: Icons.receipt_long_outlined,
-            activeIcon: Icons.receipt_long_rounded,
-            label: AppStrings.navSales(isArabic),
-          ),
-          BottomNavItem(
-            icon: Icons.inventory_2_outlined,
-            activeIcon: Icons.inventory_2_rounded,
-            label: AppStrings.navInventory(isArabic),
-          ),
-          BottomNavItem(
-            icon: Icons.account_balance_wallet_outlined,
-            activeIcon: Icons.account_balance_wallet_rounded,
-            label: AppStrings.navTreasury(isArabic),
-          ),
-          BottomNavItem(
-            icon: Icons.more_horiz_rounded,
-            activeIcon: Icons.more_horiz_rounded,
-            label: AppStrings.navMore(isArabic),
-          ),
-        ],
       ),
     );
   }

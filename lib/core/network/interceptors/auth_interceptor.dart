@@ -41,17 +41,31 @@ class AuthInterceptor extends Interceptor {
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    final status = err.response?.statusCode;
-    final path = err.requestOptions.path;
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
+    // ApiService uses `validateStatus: < 500`, so a 401 arrives here as a
+    // resolved response rather than an error — this is where the expired-token
+    // logout must be detected. (The `onError` path below only ever sees a 401
+    // if that policy changes; both are kept so the logout fires either way.)
+    _handleUnauthorized(response.statusCode, response.requestOptions.path);
+    handler.next(response);
+  }
 
-    // A 401 on an authenticated call means our token is dead. Drop it and tell
-    // the app to log out. Login failures are left alone for the form to show.
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    _handleUnauthorized(err.response?.statusCode, err.requestOptions.path);
+    handler.next(err);
+  }
+
+  /// A 401 on an authenticated call means our token is dead. Drop it and tell
+  /// the app to log out. Login/register/refresh failures are left alone for the
+  /// form to show ("bad credentials", not "session expired").
+  void _handleUnauthorized(int? status, String path) {
     if (status == 401 && !_isPublic(path)) {
       _tokenStorage.clear();
       _sessionEvents.signalUnauthorized();
     }
-
-    handler.next(err);
   }
 }

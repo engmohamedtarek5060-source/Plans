@@ -17,8 +17,11 @@ abstract class SecureKeyValueStore {
 class FlutterSecureKeyValueStore implements SecureKeyValueStore {
   const FlutterSecureKeyValueStore([this._storage = _defaultStorage]);
 
+  // Android-backed storage. Encryption is handled by the plugin's default
+  // ciphers; the old `encryptedSharedPreferences` flag is deprecated and
+  // ignored in v10+.
   static const _defaultStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
   );
 
   final FlutterSecureStorage _storage;

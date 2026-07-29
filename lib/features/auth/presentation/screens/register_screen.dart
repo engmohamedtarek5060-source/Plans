@@ -70,11 +70,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 next is AuthAuthenticated ||
                 (next is AuthUnauthenticated && next.failure != null),
             listener: (context, state) {
-              // Registering signs the user in, and the root gate has already
-              // swapped to the home shell underneath. Pop so this pushed route
-              // stops covering it.
+              // Registering signs the user in. The root gate swaps to the home
+              // shell underneath this pushed route — clear the stack after the
+              // frame so we never leave register covering the destination.
               if (state is AuthAuthenticated) {
-                Navigator.of(context).pop();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!context.mounted) return;
+                  final navigator = Navigator.of(context, rootNavigator: true);
+                  if (navigator.canPop()) {
+                    navigator.popUntil((route) => route.isFirst);
+                  }
+                });
                 return;
               }
               if (state is AuthUnauthenticated && state.failure != null) {

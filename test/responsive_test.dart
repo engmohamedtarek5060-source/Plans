@@ -6,7 +6,6 @@ import 'package:saudiaaaa/core/di/app_bloc_providers.dart';
 import 'package:saudiaaaa/core/di/app_dependencies.dart';
 import 'package:saudiaaaa/core/responsive/responsive.dart';
 import 'package:saudiaaaa/features/auth/presentation/screens/login_screen.dart';
-import 'package:saudiaaaa/features/role/presentation/screens/role_selection_screen.dart';
 
 /// In-memory secure storage stand-in (platform storage is unavailable under
 /// `flutter test`).
@@ -75,6 +74,8 @@ Future<List<String>> _pumpAppAtSize(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(_app(deps));
+  // Past the branded intro splash before asserting on login.
+  await tester.pump(const Duration(seconds: 4));
   await tester.pumpAndSettle();
 
   FlutterError.onError = previousOnError;
@@ -98,31 +99,10 @@ void main() {
     });
   });
 
-  group('Role selection screen renders without overflow at every size', () {
-    for (final entry in _sizes.entries) {
-      testWidgets(entry.key, (tester) async {
-        // Empty store: no role chosen, which is what puts the selection screen
-        // in front of the login screen on a first launch.
-        final deps = AppDependencies.create(store: _InMemoryStore());
-        final overflows =
-            await _pumpAppAtSize(tester, entry.key, entry.value, deps);
-
-        expect(find.byType(RoleSelectionScreen), findsOneWidget,
-            reason: 'role selection should render at ${entry.key}');
-        expect(overflows, isEmpty, reason: overflows.join('\n'));
-      });
-    }
-  });
-
   group('Login screen renders without overflow at every size', () {
     for (final entry in _sizes.entries) {
       testWidgets(entry.key, (tester) async {
-        // A role is already chosen, so the gate falls through to the session
-        // check and — with no token — the login screen.
-        final store = _InMemoryStore();
-        await store.write(key: 'plans.role', value: 'company');
-
-        final deps = AppDependencies.create(store: store);
+        final deps = AppDependencies.create(store: _InMemoryStore());
         final overflows =
             await _pumpAppAtSize(tester, entry.key, entry.value, deps);
 

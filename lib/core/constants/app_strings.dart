@@ -3,6 +3,9 @@ abstract final class AppStrings {
   // App
   static String appName(bool isArabic) =>
       isArabic ? 'Plans ERP' : 'Plans ERP';
+  static String splashTagline(bool isArabic) => isArabic
+      ? 'إدارة أعمالك بذكاء وسلاسة'
+      : 'Smart business management, made simple';
 
   // Navigation
   static String navDashboard(bool isArabic) =>
@@ -40,6 +43,27 @@ abstract final class AppStrings {
   static String paid(bool isArabic) => isArabic ? 'مدفوعة' : 'Paid';
   static String pending(bool isArabic) => isArabic ? 'معلقة' : 'Pending';
   static String overdue(bool isArabic) => isArabic ? 'متأخرة' : 'Overdue';
+  static String invoiceDocument(bool isArabic) =>
+      isArabic ? 'فاتورة' : 'Invoice';
+  static String invoiceItems(bool isArabic) =>
+      isArabic ? '{count} بنود' : '{count} items';
+  static String billTo(bool isArabic) => isArabic ? 'فاتورة إلى' : 'Bill to';
+  static String issueDate(bool isArabic) =>
+      isArabic ? 'تاريخ الإصدار' : 'Issue date';
+  static String dueDate(bool isArabic) =>
+      isArabic ? 'تاريخ الاستحقاق' : 'Due date';
+  static String invoiceItemsSection(bool isArabic) =>
+      isArabic ? 'البنود' : 'Items';
+  static String subtotal(bool isArabic) =>
+      isArabic ? 'المجموع الفرعي' : 'Subtotal';
+  static String discount(bool isArabic) => isArabic ? 'الخصم' : 'Discount';
+  static String vat(bool isArabic) => isArabic ? 'الضريبة' : 'VAT';
+  static String total(bool isArabic) => isArabic ? 'الإجمالي' : 'Total';
+  static String amountPaid(bool isArabic) => isArabic ? 'المدفوع' : 'Paid';
+  static String balanceDue(bool isArabic) =>
+      isArabic ? 'المتبقي' : 'Balance due';
+  static String notes(bool isArabic) => isArabic ? 'ملاحظات' : 'Notes';
+  static String customer(bool isArabic) => isArabic ? 'العميل' : 'Customer';
 
   // Inventory
   static String inventoryTitle(bool isArabic) =>
@@ -144,6 +168,8 @@ abstract final class AppStrings {
       ? 'انتهت جلستك. يرجى تسجيل الدخول مرة أخرى'
       : 'Your session expired. Please log in again';
   static String logout(bool isArabic) => isArabic ? 'تسجيل الخروج' : 'Log out';
+  static String pressBackAgainToExit(bool isArabic) =>
+      isArabic ? 'اضغط رجوع مرة أخرى للخروج' : 'Press back again to exit';
   static String resetPassword(bool isArabic) =>
       isArabic ? 'إعادة تعيين كلمة المرور' : 'Reset password';
   static String resetPasswordHint(bool isArabic) => isArabic

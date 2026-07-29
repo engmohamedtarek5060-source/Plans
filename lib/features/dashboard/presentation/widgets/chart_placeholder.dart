@@ -19,6 +19,10 @@ class ChartPlaceholder extends StatelessWidget {
     final colors = context.appColors;
     if (data.isEmpty) return const SizedBox.shrink();
     final maxVal = data.reduce((a, b) => a > b ? a : b);
+    // Guard the bar-height division: when every plotted value is 0, `maxVal` is
+    // 0 and `value / maxVal` would be NaN (0/0), which is invalid as a layout
+    // heightFactor. Fall back to flat, minimum-height bars instead.
+    final hasRange = maxVal > 0;
 
     return AppCard(
       child: Column(
@@ -61,7 +65,7 @@ class ChartPlaceholder extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: data.asMap().entries.map((entry) {
                 final value = entry.value;
-                final heightFactor = value / maxVal;
+                final heightFactor = hasRange ? value / maxVal : 0.0;
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),

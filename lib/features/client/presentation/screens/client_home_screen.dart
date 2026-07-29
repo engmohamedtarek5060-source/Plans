@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:saudiaaaa/core/constants/app_strings.dart';
 import 'package:saudiaaaa/core/providers/locale_provider.dart';
@@ -8,15 +9,13 @@ import 'package:saudiaaaa/core/theme/app_spacing.dart';
 import 'package:saudiaaaa/core/widgets/empty_state.dart';
 import 'package:saudiaaaa/core/widgets/glass_surface.dart';
 import 'package:saudiaaaa/core/widgets/premium_background.dart';
-import 'package:saudiaaaa/features/role/presentation/controllers/role_controller.dart';
+import 'package:saudiaaaa/features/auth/presentation/cubit/auth_cubit.dart';
 
-/// Landing screen for the Client role.
+/// Landing screen for client (USER) accounts.
 ///
-/// A scaffold, not a finished feature: the client-facing endpoints aren't wired
-/// yet, so this establishes the shell and the route while the content is built
-/// out. The "switch account type" action clears the stored role and returns to
-/// the selection screen — without it this screen would be a dead end, since the
-/// role is otherwise chosen once and never revisited.
+/// A scaffold for now: client-facing endpoints aren't wired yet. Logout returns
+/// to the shared login screen; post-auth routing decides this vs the company
+/// shell from the server role.
 class ClientHomeScreen extends ConsumerWidget {
   const ClientHomeScreen({super.key});
 
@@ -68,12 +67,12 @@ class ClientHomeScreen extends ConsumerWidget {
                         ),
                         IconButton(
                           onPressed: () =>
-                              ref.read(roleControllerProvider.notifier).clear(),
+                              context.read<AuthCubit>().logout(),
                           icon: Icon(
-                            Icons.swap_horiz_rounded,
+                            Icons.logout_rounded,
                             color: colors.textPrimary,
                           ),
-                          tooltip: AppStrings.switchRole(isArabic),
+                          tooltip: AppStrings.logout(isArabic),
                         ),
                       ],
                     ),

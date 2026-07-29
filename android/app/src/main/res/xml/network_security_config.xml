@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Production network policy.
+
+  - cleartextTrafficPermitted="false": the app talks only to HTTPS endpoints
+    (https://admin.plansksa.cloud). Blocking cleartext prevents accidental
+    plaintext requests and man-in-the-middle downgrade attacks.
+  - Trusts the system CA store, which covers standard public certificates.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

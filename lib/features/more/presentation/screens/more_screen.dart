@@ -14,7 +14,6 @@ import 'package:saudiaaaa/core/widgets/section_header.dart';
 import 'package:saudiaaaa/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:saudiaaaa/features/auth/presentation/cubit/auth_state.dart';
 import 'package:saudiaaaa/features/expenses/presentation/screens/expenses_screen.dart';
-import 'package:saudiaaaa/features/role/presentation/controllers/role_controller.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -110,18 +109,7 @@ class MoreScreen extends ConsumerWidget {
           icon: Icons.logout_rounded,
           title: AppStrings.logout(isArabic),
           subtitle: isArabic ? 'العودة لصفحة الدخول' : 'Return to sign in',
-          // Clears the token *and* the stored role, returning the app to its
-          // very first screen. Deliberately only on an explicit logout — a
-          // session that expires on its own drops the token alone, because a
-          // token timing out is no reason to re-ask which app someone wants.
-          //
-          // Concurrent rather than sequential so the root gate settles once:
-          // clearing the role alone already routes to selection, since role
-          // outranks the session there.
-          onTap: () => Future.wait([
-            context.read<AuthCubit>().logout(),
-            ref.read(roleControllerProvider.notifier).clear(),
-          ]),
+          onTap: () => context.read<AuthCubit>().logout(),
           isDestructive: true,
           trailing: Icon(Icons.chevron_right_rounded, color: colors.error),
         ),

@@ -16,16 +16,11 @@ import 'package:saudiaaaa/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:saudiaaaa/features/auth/presentation/cubit/auth_state.dart';
 import 'package:saudiaaaa/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:saudiaaaa/features/auth/presentation/screens/register_screen.dart';
-import 'package:saudiaaaa/features/role/domain/entities/user_role.dart';
 import 'package:saudiaaaa/features/auth/presentation/widgets/login_language_toggle.dart';
 import 'package:saudiaaaa/features/auth/presentation/widgets/login_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, required this.role});
-
-  /// The entry role chosen on first launch. Decides whether registration is
-  /// offered: only a company can be created through `/auth/register`.
-  final UserRole role;
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -235,55 +230,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     ),
                                   ),
                                   const Spacer(flex: 1),
-                                  // Registration provisions a company, so it is
-                                  // offered only to the company role. A client
-                                  // gets an explanation instead of a button
-                                  // that could only ever fail.
-                                  switch (widget.role) {
-                                    UserRole.company => Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            AppStrings.noAccount(isArabic),
-                                            style: TextStyle(
-                                              color: colors.textSecondary,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: isLoading
-                                                ? null
-                                                : () =>
-                                                    Navigator.of(context).push(
-                                                      MaterialPageRoute<void>(
-                                                        builder: (_) =>
-                                                            const RegisterScreen(),
-                                                      ),
-                                                    ),
-                                            child: Text(
-                                              AppStrings.signUp(isArabic),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    UserRole.client => Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: AppSpacing.md,
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        AppStrings.noAccount(isArabic),
+                                        style: TextStyle(
+                                          color: colors.textSecondary,
+                                          fontSize: 14,
                                         ),
+                                      ),
+                                      TextButton(
+                                        onPressed: isLoading
+                                            ? null
+                                            : () => Navigator.of(context).push(
+                                                  MaterialPageRoute<void>(
+                                                    builder: (_) =>
+                                                        const RegisterScreen(),
+                                                  ),
+                                                ),
                                         child: Text(
-                                          AppStrings.clientAccountsProvisioned(
-                                            isArabic,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: colors.textTertiary,
-                                            fontSize: 13,
-                                            height: 1.4,
-                                          ),
+                                          AppStrings.signUp(isArabic),
                                         ),
                                       ),
-                                  },
+                                    ],
+                                  ),
                                   const SizedBox(height: AppSpacing.md),
                                 ],
                               ),

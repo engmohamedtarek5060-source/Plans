@@ -61,18 +61,19 @@ class AuthSessionModel {
   final String? refreshToken;
   final AuthUser user;
 
-  /// Shape: `{token, accessToken, refreshToken, user:{...}}`.
-  /// `token` and `accessToken` are duplicates today; prefer `accessToken` and
-  /// fall back so either alone is enough.
+  /// Shape: `{token, accessToken, refreshToken, user:{...}}`, optionally
+  /// wrapped as `{data: {...}}`. `token` and `accessToken` are duplicates
+  /// today; prefer `accessToken` and fall back so either alone is enough.
   static AuthSessionModel fromJson(Map<String, dynamic> json) {
-    final token = asStringOrNull(json['accessToken']) ??
-        asStringOrNull(json['token']) ??
+    final payload = asMap(json['data']).isNotEmpty ? asMap(json['data']) : json;
+    final token = asStringOrNull(payload['accessToken']) ??
+        asStringOrNull(payload['token']) ??
         '';
 
     return AuthSessionModel(
       accessToken: token,
-      refreshToken: asStringOrNull(json['refreshToken']),
-      user: AuthUserModel.fromJson(asMap(json['user'])),
+      refreshToken: asStringOrNull(payload['refreshToken']),
+      user: AuthUserModel.fromJson(asMap(payload['user'])),
     );
   }
 }
