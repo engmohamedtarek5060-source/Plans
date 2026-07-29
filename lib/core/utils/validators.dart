@@ -1,4 +1,5 @@
 import 'package:saudiaaaa/core/constants/app_strings.dart';
+import 'package:saudiaaaa/core/utils/number_input.dart';
 
 /// Form field validators shared across the auth screens.
 ///
@@ -91,6 +92,40 @@ abstract final class Validators {
   }) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.length < minLength) return message;
+    return null;
+  }
+
+  /// A money amount, parsed the same way the submit path parses it.
+  ///
+  /// [min] mirrors the backend's floor so the user gets inline feedback instead
+  /// of a round-trip and a red snackbar — `POST /hr/expense-claims` rejects a
+  /// line with `amount must not be less than 0.01`.
+  static String? amount(
+    String? value, {
+    required String message,
+    double min = 0.01,
+  }) {
+    final parsed = parseAmountInput(value);
+    if (parsed == null || parsed < min) return message;
+    return null;
+  }
+
+  /// An optional whole number: blank passes, garbage does not.
+  ///
+  /// Used for fields the API treats as optional (a product's reorder point),
+  /// where leaving the field empty must stay valid.
+  static String? optionalInteger(String? value, {required String message}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+    if (parseIntInput(trimmed) == null) return message;
+    return null;
+  }
+
+  /// An optional money amount: blank passes, garbage does not.
+  static String? optionalAmount(String? value, {required String message}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+    if (parseAmountInput(trimmed) == null) return message;
     return null;
   }
 }

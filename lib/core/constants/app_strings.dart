@@ -83,8 +83,75 @@ abstract final class AppStrings {
   static String totalExpenses(bool isArabic) =>
       isArabic ? 'إجمالي المصروفات' : 'Total Expenses';
 
+  // Add expense
+  static String addExpenseTitle(bool isArabic) =>
+      isArabic ? 'إضافة مصروف' : 'Add expense';
+  static String addExpenseSubtitle(bool isArabic) => isArabic
+      ? 'سجّل مطالبة مصروف لأحد الموظفين'
+      : 'Record an expense claim for an employee';
+  static String employee(bool isArabic) => isArabic ? 'الموظف' : 'Employee';
+  static String employeeRequired(bool isArabic) =>
+      isArabic ? 'اختر الموظف' : 'Select an employee';
+  static String noEmployeesTitle(bool isArabic) =>
+      isArabic ? 'لا يوجد موظفون' : 'No employees yet';
+  static String noEmployeesSubtitle(bool isArabic) => isArabic
+      ? 'تُسجَّل المصروفات على موظف. أضف موظفًا أولاً من نظام الموارد البشرية.'
+      : 'An expense is claimed by an employee. Add one in HR first.';
+  static String expenseCategory(bool isArabic) =>
+      isArabic ? 'نوع المصروف' : 'Category';
+  static String expenseCategoryRequired(bool isArabic) =>
+      isArabic ? 'اختر نوع المصروف' : 'Select a category';
+  static String expenseDate(bool isArabic) => isArabic ? 'التاريخ' : 'Date';
+  static String amount(bool isArabic) => isArabic ? 'المبلغ' : 'Amount';
+  static String amountRequired(bool isArabic) => isArabic
+      ? 'أدخل مبلغًا أكبر من صفر'
+      : 'Enter an amount greater than zero';
+  static String description(bool isArabic) => isArabic ? 'الوصف' : 'Description';
+  static String descriptionRequired(bool isArabic) =>
+      isArabic ? 'أدخل وصفًا (حرفان على الأقل)' : 'Enter a description';
+  static String saveExpense(bool isArabic) =>
+      isArabic ? 'حفظ المصروف' : 'Save expense';
+  static String expenseCreated(bool isArabic) =>
+      isArabic ? 'تم حفظ المصروف' : 'Expense saved';
+
+  // Add product
+  static String addProduct(bool isArabic) =>
+      isArabic ? 'إضافة منتج' : 'Add product';
+  static String addProductSubtitle(bool isArabic) => isArabic
+      ? 'أضف منتجًا جديدًا إلى المخزون'
+      : 'Add a new product to your inventory';
+  static String productName(bool isArabic) =>
+      isArabic ? 'اسم المنتج' : 'Product name';
+  static String productNameRequired(bool isArabic) =>
+      isArabic ? 'أدخل اسم المنتج (حرفان على الأقل)' : 'Enter a product name';
+  static String productNameAr(bool isArabic) =>
+      isArabic ? 'الاسم بالعربية (اختياري)' : 'Arabic name (optional)';
+  static String productCategory(bool isArabic) =>
+      isArabic ? 'التصنيف' : 'Category';
+  static String productCategoryRequired(bool isArabic) =>
+      isArabic ? 'أدخل التصنيف' : 'Enter a category';
+  static String sku(bool isArabic) =>
+      isArabic ? 'رمز المنتج (اختياري)' : 'SKU (optional)';
+  static String costPrice(bool isArabic) =>
+      isArabic ? 'سعر التكلفة' : 'Cost price';
+  static String sellingPrice(bool isArabic) =>
+      isArabic ? 'سعر البيع' : 'Selling price';
+  static String priceRequired(bool isArabic) =>
+      isArabic ? 'أدخل سعرًا صحيحًا' : 'Enter a valid price';
+  static String unitOfMeasure(bool isArabic) =>
+      isArabic ? 'وحدة القياس (اختياري)' : 'Unit of measure (optional)';
+  static String reorderPoint(bool isArabic) =>
+      isArabic ? 'حد إعادة الطلب (اختياري)' : 'Reorder point (optional)';
+  static String wholeNumberRequired(bool isArabic) =>
+      isArabic ? 'أدخل رقمًا صحيحًا' : 'Enter a whole number';
+  static String saveProduct(bool isArabic) =>
+      isArabic ? 'حفظ المنتج' : 'Save product';
+  static String productCreated(bool isArabic) =>
+      isArabic ? 'تم حفظ المنتج' : 'Product saved';
+
   // Common
   static String search(bool isArabic) => isArabic ? 'بحث...' : 'Search...';
+  static String cancel(bool isArabic) => isArabic ? 'إلغاء' : 'Cancel';
   static String loading(bool isArabic) => isArabic ? 'جاري التحميل' : 'Loading';
   static String retry(bool isArabic) => isArabic ? 'إعادة المحاولة' : 'Retry';
   static String emptyTitle(bool isArabic) =>

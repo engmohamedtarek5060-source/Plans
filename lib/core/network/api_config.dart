@@ -40,8 +40,11 @@ class ApiEndpoints {
   // Treasury
   static const String bankAccounts = '/banking/accounts';
 
-  // Expenses
+  // Expenses / HR
   static const String expenseClaims = '/hr/expense-claims';
+
+  /// Needed by the Add Expense form: a claim is filed against an employee id.
+  static const String employees = '/hr/employees';
 
   // Notifications
   static const String notifications = '/notifications';

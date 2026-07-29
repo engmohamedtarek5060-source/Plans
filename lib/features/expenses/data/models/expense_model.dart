@@ -1,5 +1,6 @@
 import 'package:saudiaaaa/core/utils/json_parse.dart';
 import 'package:saudiaaaa/features/expenses/domain/entities/expense.dart';
+import 'package:saudiaaaa/features/expenses/domain/entities/expense_category.dart';
 
 /// GET /hr/expense-claims -> bare JSON array.
 ///
@@ -12,19 +13,6 @@ import 'package:saudiaaaa/features/expenses/domain/entities/expense.dart';
 /// ```
 class ExpenseModel {
   const ExpenseModel._();
-
-  /// Backend `expenseType` enum -> Arabic label. The API returns these codes
-  /// only in English, so the Arabic UI needs a local mapping.
-  static const _categoryAr = <String, String>{
-    'TRAVEL': 'سفر',
-    'MEALS': 'وجبات',
-    'ACCOMMODATION': 'إقامة',
-    'SUPPLIES': 'مستلزمات',
-    'COMMUNICATION': 'اتصالات',
-    'TRAINING': 'تدريب',
-    'ENTERTAINMENT': 'ضيافة',
-    'OTHER': 'أخرى',
-  };
 
   /// Claim `status` -> Arabic label, reused as the "payment method" slot.
   static const _statusAr = <String, String>{
@@ -60,12 +48,18 @@ class ExpenseModel {
 
     final employeeName = asStringOrNull(employee['name']);
 
+    // Labels come from the shared enum so the read path and the Add Expense
+    // picker can never drift apart. An unrecognised code (a category added
+    // server-side) falls through to the title-cased code rather than being
+    // relabelled "Other".
+    final knownCategory = ExpenseCategory.tryFromCode(category);
+
     return Expense(
       id: claimNumber.isEmpty ? '${asInt(json['id'])}' : claimNumber,
       title: employeeName == null ? title : '$title — $employeeName',
       titleAr: employeeName == null ? title : '$title — $employeeName',
-      category: _titleCase(category),
-      categoryAr: _categoryAr[category] ?? _titleCase(category),
+      category: knownCategory?.labelEn ?? _titleCase(category),
+      categoryAr: knownCategory?.labelAr ?? _titleCase(category),
       amount: asDouble(json['totalAmount']),
       date: asDate(json['claimDate']),
       // The claim has no payment method; its status is the useful signal here.
