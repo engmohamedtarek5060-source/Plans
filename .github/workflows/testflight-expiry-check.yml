@@ -1,0 +1,107 @@
+name: TestFlight expiry check
+
+# TestFlight expires every build 90 days after upload, and Apple sends no
+# warning before testers are locked out. The rebuild cron in ios-testflight.yml
+# is the primary defence; this is the alarm for when that cron does not fire --
+# most often because GitHub disabled the schedule after 60 days of repository
+# inactivity, which is the one failure the rebuild cron cannot report itself.
+#
+# Runs on ubuntu: it only makes HTTPS calls, so there is no reason to pay for
+# a macOS runner.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  BUNDLE_ID: com.plans.app
+  WARN_DAYS: "21"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install App Store Connect client dependencies
+        run: pip3 install --quiet pyjwt==2.10.1 cryptography==44.0.0
+
+      - name: Install App Store Connect API key
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          chmod 600 ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+      - name: Read version from pubspec
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1 | tr -d '[:space:]')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check expiry
+        id: expiry
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 .github/scripts/asc.py check-expiry \
+            --bundle-id "$BUNDLE_ID" \
+            --version "${{ steps.version.outputs.value }}" \
+            --warn-days "$WARN_DAYS"
+
+      # One issue per condition, reused rather than reopened, so a build that
+      # sits close to expiry for three weeks does not file three weekly issues.
+      - name: Open or update the warning issue
+        if: steps.expiry.outputs.status != 'ok'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DAYS_LEFT: ${{ steps.expiry.outputs.days_left }}
+          BUILD_NUMBER: ${{ steps.expiry.outputs.build_number }}
+          STATUS: ${{ steps.expiry.outputs.status }}
+        run: |
+          TITLE="TestFlight build expiring soon"
+
+          if [ "$STATUS" = "none" ]; then
+            BODY="No live TestFlight build exists for version ${{ steps.version.outputs.value }}. Testers cannot install the app.
+
+          Run the **iOS TestFlight** workflow to publish one."
+          else
+            BODY="TestFlight build \`$BUILD_NUMBER\` expires in **$DAYS_LEFT days**. After that, testers can no longer install it.
+
+          Run the **iOS TestFlight** workflow to publish a replacement.
+
+          If this keeps recurring, the two-monthly rebuild cron has stopped firing — GitHub disables scheduled workflows after 60 days of repository inactivity. Re-enable it from the Actions tab."
+          fi
+
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+            echo "Commented on issue #$EXISTING"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      - name: Close a resolved warning
+        if: steps.expiry.outputs.status == 'ok'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --state open --search "TestFlight build expiring soon in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --comment "A newer build is live; ${{ steps.expiry.outputs.days_left }} days remaining."
+          fi
+
+      - name: Summary
+        run: |
+          echo "Status: ${{ steps.expiry.outputs.status }} (${{ steps.expiry.outputs.days_left }} days left)" >> "$GITHUB_STEP_SUMMARY"

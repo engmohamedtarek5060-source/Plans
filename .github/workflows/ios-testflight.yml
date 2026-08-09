@@ -1,12 +1,15 @@
 name: iOS TestFlight
 
-# Manual trigger only. Run it from the GitHub UI:
-#   Actions -> "iOS TestFlight" -> "Run workflow"
+# Three ways in:
+#   1. Manual  - Actions -> "iOS TestFlight" -> "Run workflow".
+#   2. Tagged  - push a v*.*.* tag to cut a release from that commit.
+#   3. Cron    - a rebuild every two months so a TestFlight build never
+#                reaches its 90-day expiry with no replacement.
 on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: "Build number (must be higher than the last one uploaded for this version). Leave blank to use the workflow run number."
+        description: "Build number. Leave blank to take the next one from App Store Connect."
         required: false
         type: string
       release_notes:
@@ -14,22 +17,48 @@ on:
         required: false
         default: "Internal build."
         type: string
+      tester_group:
+        description: "Internal TestFlight group. Created if it does not exist."
+        required: false
+        default: "Internal Testers"
+        type: string
+  push:
+    tags:
+      - "v*.*.*"
+  schedule:
+    # 06:00 UTC on the 1st of every second month (~60 days). Cron has no
+    # "every 60 days", and `*/60` in the day-of-month field is meaningless
+    # since that field only counts 1-31.
+    #
+    # GitHub disables scheduled workflows after 60 days of repository
+    # inactivity, which is the same order as this interval -- if the repo goes
+    # quiet, re-enable the schedule from the Actions tab.
+    - cron: "0 6 1 */2 *"
+
+# Two releases uploading at once would race for the same build number.
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+env:
+  # Must match PRODUCT_BUNDLE_IDENTIFIER in ios/Runner.xcodeproj/project.pbxproj.
+  BUNDLE_ID: com.plans.app
+  FLUTTER_VERSION: "3.41.1"
+  # Pinned so a new PyJWT release cannot break a release build.
+  PY_DEPS: "pyjwt==2.10.1 cryptography==44.0.0"
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 60
-
-    env:
-      # Must match PRODUCT_BUNDLE_IDENTIFIER in ios/Runner.xcodeproj/project.pbxproj
-      BUNDLE_ID: com.plans.app
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Resolves whatever stable Xcode the runner image ships, rather than pinning a
-      # path like /Applications/Xcode_16.2.app that breaks when the image is updated.
+      # Resolves whatever stable Xcode the runner image ships, rather than
+      # pinning a path like /Applications/Xcode_16.2.app that breaks when the
+      # image is updated.
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -38,18 +67,63 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.41.1
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
+      - name: Install App Store Connect client dependencies
+        run: pip3 install --quiet ${{ env.PY_DEPS }}
+
+      # altool and xcodebuild both look for the key in
+      # ~/private_keys/AuthKey_<KEY_ID>.p8, so it is written there rather than
+      # passed inline. asc.py reads the same path.
+      - name: Install App Store Connect API key
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          if [ -z "$ASC_KEY_P8_BASE64" ]; then
+            echo "::error::ASC_KEY_P8_BASE64 is not set. See docs/IOS_RELEASE.md step 3."
+            exit 1
+          fi
+          mkdir -p ~/private_keys
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          chmod 600 ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          # A truncated or wrongly-encoded secret fails here rather than 20
+          # minutes later at the upload step.
+          grep -q "BEGIN PRIVATE KEY" ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
+            || { echo "::error::Decoded .p8 is not a private key. Re-copy the base64 secret."; exit 1; }
+
+      - name: Read version from pubspec
+        id: version
+        run: |
+          VERSION=$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1 | tr -d '[:space:]')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Marketing version: $VERSION"
+
+      # Apple permanently rejects a build number already used for this version
+      # string, and that rejection lands after the ~20-minute build. Asking
+      # App Store Connect for the real highest number is the only source of
+      # truth -- github.run_number drifts as soon as any build is uploaded
+      # from elsewhere, or the workflow is renamed.
       - name: Resolve build number
         id: buildnum
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           if [ -n "${{ inputs.build_number }}" ]; then
             echo "value=${{ inputs.build_number }}" >> "$GITHUB_OUTPUT"
           else
-            echo "value=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            NEXT=$(python3 .github/scripts/asc.py next-build-number \
+              --bundle-id "$BUNDLE_ID" \
+              --version "${{ steps.version.outputs.value }}")
+            echo "value=$NEXT" >> "$GITHUB_OUTPUT"
+            echo "Next build number: $NEXT"
           fi
+
+      - name: Clean
+        run: flutter clean
 
       - name: Install dependencies
         run: flutter pub get
@@ -57,23 +131,29 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      # The .p8 App Store Connect key. altool and xcodebuild both look for it in
-      # ~/private_keys/AuthKey_<KEY_ID>.p8, so it is written there rather than passed inline.
-      - name: Install App Store Connect API key
-        env:
-          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        run: |
-          mkdir -p ~/private_keys
-          echo "$ASC_KEY_P8_BASE64" | base64 --decode > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
-          chmod 600 ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+      - name: Test
+        run: flutter test --exclude-tags integration
 
-      # Compiles Dart to a release AOT bundle and runs `pod install`, without touching signing.
-      # Signing is handled by the archive step so provisioning failures surface with clear errors.
+      # Compiles Dart to a release AOT bundle and runs `pod install`, without
+      # touching signing. Signing failures then surface at the archive step
+      # with Xcode's own diagnostics rather than buried in Flutter's output.
       - name: Build Flutter iOS bundle
         run: |
           flutter build ios --release --no-codesign \
+            --build-name=${{ steps.version.outputs.value }} \
             --build-number=${{ steps.buildnum.outputs.value }}
+
+      # Podfile.lock is generated on macOS, so a Windows checkout cannot commit
+      # it. Publishing it as an artifact lets it be committed once, after which
+      # CocoaPods resolves identical versions on every later run.
+      - name: Upload Podfile.lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: podfile-lock
+          path: ios/Podfile.lock
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Inject Team ID into ExportOptions
         env:
@@ -82,15 +162,17 @@ jobs:
           sed "s/__TEAM_ID__/${APPLE_TEAM_ID}/" ios/ExportOptions.plist > "$RUNNER_TEMP/ExportOptions.plist"
           plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
 
-      # -allowProvisioningUpdates lets Xcode create the distribution certificate and
-      # provisioning profile on demand using the API key, so no .p12 or .mobileprovision
-      # has to be generated by hand on a Mac.
+      # -allowProvisioningUpdates lets Xcode create the distribution
+      # certificate and provisioning profile on demand using the API key, so no
+      # .p12 or .mobileprovision has to be generated by hand on a Mac. This is
+      # why the key needs App Manager access -- Developer is not sufficient.
       - name: Archive
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          set -o pipefail
           xcodebuild archive \
             -workspace ios/Runner.xcworkspace \
             -scheme Runner \
@@ -102,7 +184,8 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
             -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            | tee "$RUNNER_TEMP/archive.log"
 
       - name: Export IPA
         env:
@@ -118,25 +201,73 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
+          IPA=$(find "$RUNNER_TEMP/ipa" -name "*.ipa" | head -1)
+          [ -n "$IPA" ] || { echo "::error::Export produced no .ipa"; exit 1; }
+          echo "IPA_PATH=$IPA" >> "$GITHUB_ENV"
+
+      # Kept before the upload so a rejected binary is caught without
+      # consuming a build number on App Store Connect.
       - name: Validate IPA
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          IPA=$(find "$RUNNER_TEMP/ipa" -name "*.ipa" | head -1)
-          xcrun altool --validate-app -f "$IPA" -t ios \
+          xcrun altool --validate-app -f "$IPA_PATH" -t ios \
             --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
 
+      # Uploads fail on transient network errors often enough to be worth
+      # retrying. altool is the primary path; iTMSTransporter is the fallback,
+      # since the two use different transports and rarely fail together.
       - name: Upload to App Store Connect
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          IPA=$(find "$RUNNER_TEMP/ipa" -name "*.ipa" | head -1)
-          xcrun altool --upload-app -f "$IPA" -t ios \
-            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+          for attempt in 1 2 3; do
+            echo "altool upload, attempt $attempt/3"
+            if xcrun altool --upload-app -f "$IPA_PATH" -t ios \
+                 --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"; then
+              echo "uploaded"
+              exit 0
+            fi
+            sleep $((attempt * 30))
+          done
 
-      # Kept so a failed upload can be retried from the artifact without a rebuild.
+          echo "::warning::altool failed three times; falling back to iTMSTransporter"
+          xcrun iTMSTransporter -m upload -assetFile "$IPA_PATH" \
+            -apiKey "$ASC_KEY_ID" -apiIssuer "$ASC_ISSUER_ID" -v informational
+
+      # Processing must finish before the build can be assigned to a group or
+      # given release notes -- App Store Connect rejects both while the build
+      # is still PROCESSING.
+      - name: Wait for processing
+        id: processing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 .github/scripts/asc.py wait-processing \
+            --bundle-id "$BUNDLE_ID" \
+            --version "${{ steps.version.outputs.value }}" \
+            --build-number "${{ steps.buildnum.outputs.value }}" \
+            --timeout 1800
+
+      # Everything altool cannot do: group assignment, release notes, testers.
+      - name: Release to internal testers
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TESTERS: ${{ vars.TESTFLIGHT_TESTERS }}
+        run: |
+          python3 .github/scripts/asc.py release \
+            --bundle-id "$BUNDLE_ID" \
+            --build-id "${{ steps.processing.outputs.build_id }}" \
+            --group "${{ inputs.tester_group || 'Internal Testers' }}" \
+            --notes "${{ inputs.release_notes || 'Automated build.' }}" \
+            --testers "$TESTERS"
+
+      # Kept so a failed upload can be retried from the artifact without a
+      # 20-minute rebuild.
       - name: Upload IPA artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,13 +277,34 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Diagnose failure
+        if: failure()
+        run: |
+          {
+            echo "### Build failed"
+            echo ""
+            echo "Bundle ID \`$BUNDLE_ID\`, version ${{ steps.version.outputs.value }}, build ${{ steps.buildnum.outputs.value }}."
+            echo ""
+            echo "| Error in the log | Cause | Fix |"
+            echo "|---|---|---|"
+            echo "| \`No profiles for '$BUNDLE_ID' were found\` | App ID not registered, or the API key lacks App Manager | Register the App ID; regenerate the key with App Manager access |"
+            echo "| \`No signing certificate \"iOS Distribution\"\` | Certificate limit reached (3 per account) | Revoke an unused one at developer.apple.com |"
+            echo "| \`Provisioning profile failed qualification\` | A capability is enabled in Xcode but not on the App ID | Keep the two in sync |"
+            echo "| \`asset has already been used\` | Build number reused | Re-run; the number is now read from App Store Connect |"
+            echo "| \`Invalid Bundle. Missing Info.plist value\` | A required usage-description key is absent | Add the NS*UsageDescription key |"
+            echo "| \`CocoaPods could not find compatible versions\` | Plugin needs a higher iOS minimum | Raise the platform line in ios/Podfile |"
+            echo ""
+            echo "The IPA artifact is attached if the build got that far."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Summary
         if: success()
         run: |
-          echo "### Uploaded to App Store Connect" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Bundle ID: \`$BUNDLE_ID\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Build number: ${{ steps.buildnum.outputs.value }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Notes: ${{ inputs.release_notes }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Processing takes 5-15 minutes before the build appears in TestFlight." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Released to TestFlight"
+            echo ""
+            echo "- Bundle ID: \`$BUNDLE_ID\`"
+            echo "- Version: ${{ steps.version.outputs.value }} (${{ steps.buildnum.outputs.value }})"
+            echo "- Group: ${{ inputs.tester_group || 'Internal Testers' }}"
+            echo "- Expires: 90 days from now; the cron rebuilds every ~60 days"
+          } >> "$GITHUB_STEP_SUMMARY"

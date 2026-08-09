@@ -1,80 +1,95 @@
 # iOS / TestFlight release
 
-The build runs on a GitHub Actions macOS runner, so no Mac is needed locally.
-Everything below is done once; after that a release is one button click.
+Build, signing, upload, and TestFlight distribution run on a GitHub Actions
+macOS runner. No Mac is needed locally. After the one-time setup below, a
+release is one button click — and the recurring rebuild needs no click at all.
 
 - Bundle ID: `com.plans.app`
 - Display name: `Plans`
-- Workflow: `.github/workflows/ios-testflight.yml`
+- Release pipeline: `.github/workflows/ios-testflight.yml`
+- Expiry monitor: `.github/workflows/testflight-expiry-check.yml`
+- API client: `.github/scripts/asc.py`
 - Export options: `ios/ExportOptions.plist`
+
+## What runs automatically
+
+| Stage | Handled by |
+|---|---|
+| Flutter install, `clean`, `pub get`, `analyze`, `test` | workflow |
+| CocoaPods resolution | `ios/Podfile` (platform pinned to iOS 13.0) |
+| Build number allocation | `asc.py next-build-number` — reads the highest used number from App Store Connect and adds one |
+| Certificate + provisioning profile | `xcodebuild -allowProvisioningUpdates` with the API key |
+| Release IPA export | `xcodebuild -exportArchive` |
+| Validation + upload (3 retries, then iTMSTransporter) | `altool` |
+| Waiting for processing | `asc.py wait-processing` |
+| Group assignment, release notes, testers | `asc.py release` |
+| Rebuild before the 90-day expiry | cron, 1st of every second month |
+| Expiry alarm | weekly check, opens a GitHub issue |
 
 ## Prerequisite
 
-An active **Apple Developer Program** membership (99 USD/year, individual or
-organization). A free Apple ID cannot upload to TestFlight. Enrolment is at
-<https://developer.apple.com/programs/enroll/> and can take 24-48 hours if Apple
-verifies an organization (D-U-N-S number required for company accounts).
-
-Nothing below works until the membership is active.
+An active **Apple Developer Program** membership (99 USD/year). A free Apple ID
+cannot upload to TestFlight.
 
 ## 1. Register the Bundle ID
 
 <https://developer.apple.com/account/resources/identifiers/list>
 
-- **+** -> App IDs -> App
-- Description: `Plans`
-- Bundle ID: **Explicit** -> `com.plans.app`
-- Capabilities: leave everything off. The app currently needs none.
-- Register.
+**+** → App IDs → App. Description `Plans`, Bundle ID **Explicit** →
+`com.plans.app`. Leave all capabilities off — the app needs none, and an
+enabled capability that isn't in the App ID causes
+`Provisioning profile failed qualification`.
 
-If a different Bundle ID is used, it must be changed in **both**
-`ios/Runner.xcodeproj/project.pbxproj` (4 occurrences) and the `BUNDLE_ID` env in
-the workflow.
+If you use a different Bundle ID, change it in **both**
+`ios/Runner.xcodeproj/project.pbxproj` (4 occurrences) and the `BUNDLE_ID`
+env in both workflow files.
 
 ## 2. Create the app record
 
-<https://appstoreconnect.apple.com/apps> -> **+** -> New App
+<https://appstoreconnect.apple.com/apps> → **+** → New App. Platform iOS,
+Bundle ID `com.plans.app`, SKU `plans-app-001`, User Access Full Access.
 
-- Platform: iOS
-- Name: `Plans` (must be globally unique across the App Store; if taken, pick
-  another - this is the store listing name and can differ from the home-screen name)
-- Primary language, Bundle ID `com.plans.app`, SKU: `plans-app-001`
-- User Access: Full Access
+The store listing **Name** must be globally unique across the App Store; it
+can differ from the home-screen name.
 
 ## 3. Create the App Store Connect API key
 
-<https://appstoreconnect.apple.com/access/integrations/api>
+<https://appstoreconnect.apple.com/access/integrations/api> → Team Keys → **+**
 
-- Team Keys tab -> **+**
 - Name: `github-actions-testflight`
-- Access: **App Manager** (needed so Xcode can create signing certificates
-  automatically; Developer role is not sufficient)
-- Generate, then **download the `.p8` file - it can only be downloaded once.**
+- Access: **App Manager**
+
+> App Manager is required, not optional. `-allowProvisioningUpdates` creates
+> the distribution certificate and provisioning profile on demand, and the
+> Developer role cannot do that — the Archive step fails with
+> `No profiles for 'com.plans.app' were found`. A key's role cannot be changed
+> after creation; generate a new key if you picked wrong.
+
+**Download the `.p8` immediately — Apple allows it exactly once.**
 
 Record three values:
 
 | Value | Where |
 |---|---|
 | Key ID | the key row, e.g. `A1B2C3D4E5` |
-| Issuer ID | shown above the key list, a UUID |
+| Issuer ID | a UUID shown *above* the key list |
 | `.p8` file | the downloaded `AuthKey_XXXXXXXX.p8` |
 
 ## 4. Find the Team ID
 
-<https://developer.apple.com/account> -> Membership details -> **Team ID**
+<https://developer.apple.com/account> → Membership details → **Team ID**
 (10 characters, e.g. `9ABCDE1234`).
 
 ## 5. Add the GitHub secrets
 
-The `.p8` is binary-ish and multi-line, so it goes in base64. In PowerShell:
+The `.p8` is multi-line, so it goes in base64. In PowerShell:
 
 ```powershell
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("$HOME\Downloads\AuthKey_A1B2C3D4E5.p8")) | Set-Clipboard
 ```
 
-Then at
-`https://github.com/engmohamedtarek5060-source/Plans/settings/secrets/actions`
-add four repository secrets:
+At `Settings → Secrets and variables → Actions → Secrets`, add four
+**repository secrets** (names are case-sensitive):
 
 | Secret | Value |
 |---|---|
@@ -83,64 +98,156 @@ add four repository secrets:
 | `ASC_ISSUER_ID` | Issuer ID from step 3 |
 | `APPLE_TEAM_ID` | Team ID from step 4 |
 
-Delete the `.p8` from the Downloads folder afterwards. It is a credential.
+Then delete the `.p8` from Downloads — it is a credential that can upload
+builds as you.
 
-## 6. Run the build
+### Optional: predefined testers
 
-GitHub -> **Actions** -> **iOS TestFlight** -> **Run workflow**.
+On the **Variables** tab of the same page, add a repository variable
+`TESTFLIGHT_TESTERS` with a comma-separated list:
 
-- `build_number` - leave blank; the workflow uses the run number, which always
-  increases. Apple rejects a build number that has been used before for the same
-  version string.
-- `release_notes` - shown to testers.
+```
+alice@example.com,bob@example.com
+```
 
-The run takes roughly 15-25 minutes. The IPA is also attached as an artifact, so
-a failed upload can be retried without rebuilding.
+Every run adds these to the internal group. Emails are not secret, so this is
+a variable rather than a secret — it stays readable and editable.
 
-## 7. TestFlight
+> **Internal testers must already hold a role on your App Store Connect team.**
+> Apple rejects an arbitrary email for an internal group. Invite them first at
+> **Users and Access** (role Developer or higher). A tester that cannot be
+> added is reported and skipped — it does not fail the build, because the
+> build itself is already uploaded and usable.
 
-After upload, App Store Connect processes the build for 5-15 minutes before it
-appears under **TestFlight -> iOS Builds**.
+## 6. Run it
 
-**Internal testing** - up to 100 people who hold a role on the App Store Connect
-team. No Apple review. Available within minutes of processing.
+**Actions → iOS TestFlight → Run workflow.**
 
-- TestFlight -> Internal Testing -> **+** on a group -> add testers by Apple ID email.
-- Each tester installs the TestFlight app from the App Store and accepts the
-  emailed invite.
+- `build_number` — leave blank. It is read from App Store Connect and
+  incremented, which is correct even if a build was uploaded from elsewhere.
+- `release_notes` — the "What to Test" text testers see.
+- `tester_group` — defaults to `Internal Testers`, created if absent.
 
-**External testing** - up to 10,000 people, no App Store Connect role needed, and
-the only route to a **public invite link**.
+Roughly 25–40 minutes, most of it Apple-side processing.
 
-- TestFlight -> External Testing -> create a group -> add the build.
-- Requires **Beta App Review** (typically 24-48 hours for the first build).
-- Requires filled Test Information: what to test, feedback email, and a
-  **demo account** - the reviewer must be able to log in. Given this app signs in
-  against the Plans ERP API, supply working credentials or review will be rejected.
-- Once approved, enable **Public Link** on the group. That URL is the shareable
-  invite link.
+The pipeline also runs on a `v*.*.*` tag push, and on the 1st of every second
+month (see Expiration below).
 
-## Version bumps
+## 7. Commit `Podfile.lock` once
 
-`pubspec.yaml` holds `version: 1.0.0+1`. The `1.0.0` part is the user-visible
-version; bump it for each release. The `+1` build number is overridden by the
-workflow, so it does not need editing.
+The first successful run attaches a `podfile-lock` artifact. Download it,
+place it at `ios/Podfile.lock`, and commit. CocoaPods then resolves identical
+pod versions on every later run. It can't be generated on Windows, which is
+why this is a one-time manual step.
+
+## Versioning
+
+`pubspec.yaml` holds `version: 1.0.0+1`.
+
+- `1.0.0` is the user-visible version — bump it for each release. The workflow
+  reads it and passes it as `--build-name`.
+- The `+1` build number is ignored; the real number comes from App Store
+  Connect.
+
+Apple **permanently** rejects a build number already used for the same version
+string, so never reuse one. Bumping the version string resets the build
+numbering.
+
+## Expiration handling
+
+TestFlight expires every build **90 days after upload**. Testers can no longer
+install it, and Apple sends no advance warning. Two mechanisms cover this:
+
+1. **Rebuild cron** — `ios-testflight.yml` runs `0 6 1 */2 *` (06:00 UTC on
+   the 1st of every second month, ~60 days), so a fresh build always lands
+   about a month before the current one expires.
+
+   Cron has no "every 60 days"; `*/60` in the day-of-month field is
+   meaningless since that field only counts 1–31. Every-second-month is the
+   correct expression.
+
+2. **Weekly monitor** — `testflight-expiry-check.yml` runs Mondays, reads the
+   newest live build's `expirationDate`, and opens a GitHub issue when fewer
+   than 21 days remain (or when no live build exists at all). It comments on
+   the existing issue rather than filing a new one each week, and closes it
+   once a fresh build is live.
+
+> ⚠️ **GitHub disables scheduled workflows after 60 days of repository
+> inactivity** — the same order as the rebuild interval. If the repo goes
+> quiet, the rebuild cron silently stops. The weekly monitor is the alarm for
+> exactly that case, but it is subject to the same rule; if both go quiet,
+> re-enable them from the Actions tab. A commit of any kind resets the clock.
+>
+> Scheduled workflows also only run from the **default branch**.
+
+## TestFlight distribution
+
+**Internal testing** — up to 100 people holding an App Store Connect role. No
+Apple review; available minutes after processing. Fully automated by the
+pipeline.
+
+**External testing** — up to 10,000 testers, no ASC role needed, and the only
+route to a public invite link. Not automated, because it requires:
+
+- **Beta App Review** (typically 24–48 hours for the first build)
+- Test Information: what to test, feedback email, and a **demo account** the
+  reviewer can log in with. This app signs in against the Plans ERP API, so
+  without working credentials review is rejected.
+
+Set it up at TestFlight → External Testing, then enable **Public Link**.
 
 ## Troubleshooting
 
-**"No profiles for 'com.plans.app' were found"** - the Bundle ID in step 1 was not
-registered, or the API key lacks App Manager access.
+**`No profiles for 'com.plans.app' were found`**
+The App ID is not registered (step 1), or the API key lacks App Manager
+access (step 3). Key roles cannot be changed — generate a new key.
 
-**"Provisioning profile failed qualification"** - a capability is enabled in Xcode
-that is not enabled on the App ID. Keep them in sync.
-
-**"The provided entity includes an attribute with a value that has already been used"** -
-the build number was reused. Re-run with a higher `build_number`.
-
-**"Missing Compliance" in TestFlight** - should not occur;
-`ITSAppUsesNonExemptEncryption=false` is set in `ios/Runner/Info.plist`. If it
-does, answer the prompt in App Store Connect.
-
-**Certificate limit reached** - an Apple account allows 3 distribution
-certificates. Revoke unused ones at
+**`No signing certificate "iOS Distribution" found`**
+An Apple account allows 3 distribution certificates. Revoke an unused one at
 <https://developer.apple.com/account/resources/certificates/list>.
+
+**`Provisioning profile failed qualification`**
+A capability is enabled in the Xcode project but not on the App ID. Keep them
+in sync.
+
+**`The provided entity includes an attribute with a value that has already been used`**
+The build number was reused. Re-run — the number now comes from App Store
+Connect, so this should not recur; if it does, the app record's bundle ID does
+not match `BUNDLE_ID`.
+
+**`Decoded .p8 is not a private key`**
+The base64 secret was truncated or wrapped. Re-run the PowerShell command in
+step 5 and paste the whole single-line string.
+
+**`Invalid Bundle. Missing Info.plist value` / privacy rejection**
+A required `NS*UsageDescription` key is missing.
+`NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` are already
+set — `image_picker` requires both, and their absence is an automatic reject.
+
+**Upload fails repeatedly**
+The workflow retries `altool` three times, then falls back to
+`iTMSTransporter`. If both fail, the IPA is attached as an artifact — download
+it and upload manually with Transporter (Mac App Store) while you investigate.
+
+**Build stuck at `PROCESSING` past 30 minutes**
+`wait-processing` times out but the build may still succeed. Check App Store
+Connect before re-running; re-running consumes another build number.
+
+**Build finished as `INVALID`**
+App Store Connect emails the reason to the account holder. Common causes: a
+missing icon size, an alpha channel in the 1024×1024 icon, an invalid
+entitlement, or an unsupported architecture.
+
+**`CocoaPods could not find compatible versions`**
+A plugin requires a higher iOS minimum than 13.0. Raise the `platform :ios`
+line in `ios/Podfile` **and** `IPHONEOS_DEPLOYMENT_TARGET` in
+`ios/Runner.xcodeproj/project.pbxproj` together — they must match.
+
+**A tester was skipped**
+Internal testers must hold an App Store Connect role. Invite them at Users and
+Access first. This is reported, not fatal.
+
+**`Missing Compliance` in TestFlight**
+Should not occur — `ITSAppUsesNonExemptEncryption=false` is set in
+`ios/Runner/Info.plist`. If custom cryptography is ever added, that must be
+revisited.
