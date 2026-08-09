@@ -96,7 +96,6 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         CustomTextField(
                           controller: _searchController,
                           label: AppStrings.search(isArabic),
-                          hint: AppStrings.search(isArabic),
                           prefixIcon: Icons.search_rounded,
                           onChanged: ref
                               .read(expensesControllerProvider.notifier)

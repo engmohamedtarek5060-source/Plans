@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,8 +34,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
 
   @override
   void dispose() {
@@ -47,13 +46,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    await context.read<AuthCubit>().register(
-          name: _nameController.text,
-          email: _emailController.text,
-          password: _passwordController.text,
-          companyName: _companyController.text,
-        );
+    FocusManager.instance.primaryFocus?.unfocus();
+    final cubit = context.read<AuthCubit>();
+    if (cubit.isLoading) return;
+
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (kDebugMode) {
+      debugPrint('RegisterScreen validation: ${isValid ? 'passed' : 'failed'}');
+    }
+    if (!isValid) return;
+
+    if (kDebugMode) debugPrint('RegisterScreen submission started');
+    await cubit.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      companyName: _companyController.text.trim(),
+    );
+    if (kDebugMode) debugPrint('RegisterScreen submission completed');
   }
 
   @override
@@ -90,7 +100,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     backgroundColor: colors.error,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.chipRadius,
+                      ),
                     ),
                   ),
                 );
@@ -102,6 +114,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
               return SingleChildScrollView(
                 padding: AppSpacing.screenPadding,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 child: Center(
                   // Keep the form a comfortable reading width on tablets
                   // instead of stretching fields edge to edge.
@@ -109,6 +123,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     constraints: const BoxConstraints(maxWidth: 480),
                     child: Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -148,92 +163,97 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                CustomTextField(
-                                  controller: _nameController,
-                                  label: AppStrings.fullName(isArabic),
-                                  hint: isArabic ? 'محمد أحمد' : 'Jane Doe',
-                                  prefixIcon: Icons.person_outline_rounded,
-                                  keyboardType: TextInputType.name,
-                                  validator: (value) => Validators.requiredText(
-                                    value,
-                                    message: AppStrings.nameRequired(isArabic),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                CustomTextField(
-                                  controller: _companyController,
-                                  label: AppStrings.companyName(isArabic),
-                                  hint: isArabic
-                                      ? 'شركة الخطط التجارية'
-                                      : 'Acme Trading Co',
-                                  prefixIcon: Icons.business_outlined,
-                                  validator: (value) => Validators.requiredText(
-                                    value,
-                                    message:
-                                        AppStrings.companyNameRequired(isArabic),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                CustomTextField(
-                                  controller: _emailController,
-                                  label: AppStrings.email(isArabic),
-                                  hint: 'name@company.com',
-                                  prefixIcon: Icons.alternate_email_rounded,
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (value) => Validators.email(
-                                    value,
-                                    isArabic: isArabic,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                CustomTextField(
-                                  controller: _passwordController,
-                                  label: AppStrings.password(isArabic),
-                                  hint: '••••••••',
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  obscureText: _obscurePassword,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      size: 20,
-                                      color: colors.textTertiary,
-                                    ),
-                                    onPressed: () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
-                                  ),
-                                  validator: (value) => Validators.newPassword(
-                                    value,
-                                    isArabic: isArabic,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                CustomTextField(
-                                  controller: _confirmController,
-                                  label: AppStrings.confirmPassword(isArabic),
-                                  hint: '••••••••',
-                                  prefixIcon: Icons.lock_reset_rounded,
-                                  obscureText: _obscureConfirm,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirm
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      size: 20,
-                                      color: colors.textTertiary,
-                                    ),
-                                    onPressed: () => setState(
-                                      () => _obscureConfirm = !_obscureConfirm,
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      Validators.confirmPassword(
-                                    value,
-                                    original: _passwordController.text,
-                                    isArabic: isArabic,
+                                AutofillGroup(
+                                  child: Column(
+                                    children: [
+                                      CustomTextField(
+                                        controller: _nameController,
+                                        label: AppStrings.fullName(isArabic),
+                                        prefixIcon:
+                                            Icons.person_outline_rounded,
+                                        keyboardType: TextInputType.name,
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.name,
+                                        ],
+                                        validator: (value) => Validators.name(
+                                          value,
+                                          isArabic: isArabic,
+                                        ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.md),
+                                      CustomTextField(
+                                        controller: _companyController,
+                                        label: AppStrings.companyName(isArabic),
+                                        prefixIcon: Icons.business_outlined,
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.organizationName,
+                                        ],
+                                        validator: (value) =>
+                                            Validators.requiredText(
+                                              value,
+                                              message:
+                                                  AppStrings.companyNameRequired(
+                                                    isArabic,
+                                                  ),
+                                            ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.md),
+                                      CustomTextField(
+                                        controller: _emailController,
+                                        label: AppStrings.email(isArabic),
+                                        prefixIcon:
+                                            Icons.alternate_email_rounded,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.email,
+                                        ],
+                                        autocorrect: false,
+                                        enableSuggestions: false,
+                                        validator: (value) => Validators.email(
+                                          value,
+                                          isArabic: isArabic,
+                                        ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.md),
+                                      CustomPasswordField(
+                                        controller: _passwordController,
+                                        label: AppStrings.password(isArabic),
+                                        prefixIcon: Icons.lock_outline_rounded,
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.newPassword,
+                                        ],
+                                        validator: (value) =>
+                                            Validators.newPassword(
+                                              value,
+                                              isArabic: isArabic,
+                                            ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.md),
+                                      CustomPasswordField(
+                                        controller: _confirmController,
+                                        label: AppStrings.confirmPassword(
+                                          isArabic,
+                                        ),
+                                        prefixIcon: Icons.lock_reset_rounded,
+                                        textInputAction: TextInputAction.done,
+                                        onFieldSubmitted: (_) => _submit(),
+                                        autofillHints: const [
+                                          AutofillHints.newPassword,
+                                        ],
+                                        validator: (value) =>
+                                            Validators.confirmPassword(
+                                              value,
+                                              original:
+                                                  _passwordController.text,
+                                              isArabic: isArabic,
+                                            ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: AppSpacing.lg),

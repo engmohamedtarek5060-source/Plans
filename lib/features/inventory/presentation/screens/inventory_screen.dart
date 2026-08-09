@@ -49,8 +49,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       error: (error, stackTrace) => ErrorState(
         message: describeError(error, isArabic),
         retryLabel: AppStrings.retry(isArabic),
-        onRetry: () =>
-            ref.read(inventoryControllerProvider.notifier).refresh(),
+        onRetry: () => ref.read(inventoryControllerProvider.notifier).refresh(),
       ),
       data: (state) => LayoutBuilder(
         builder: (context, constraints) {
@@ -59,8 +58,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
           // Inside the padded area the grid is a touch narrower than the
           // outer constraint; subtract horizontal screen padding so column
           // count matches what the user actually sees.
-          final gridWidth =
-              (contentWidth - AppSpacing.md * 2).clamp(0.0, contentWidth);
+          final gridWidth = (contentWidth - AppSpacing.md * 2).clamp(
+            0.0,
+            contentWidth,
+          );
           final gridColumns = Responsive.gridColumns(gridWidth);
 
           return RefreshIndicator(
@@ -93,7 +94,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       CustomTextField(
                         controller: _searchController,
                         label: AppStrings.search(isArabic),
-                        hint: AppStrings.search(isArabic),
                         prefixIcon: Icons.search_rounded,
                         onChanged: ref
                             .read(inventoryControllerProvider.notifier)
@@ -295,18 +295,18 @@ class _ProductCard extends StatelessWidget {
                 Text(
                   isArabic ? product.nameAr : product.name,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: colors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                   maxLines: dense ? 2 : 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${product.sku} · ${isArabic ? product.categoryAr : product.category}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.textSecondary,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -314,9 +314,9 @@ class _ProductCard extends StatelessWidget {
                 Text(
                   Formatters.currency(product.unitPrice, locale: locale),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.textTertiary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: colors.textTertiary,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -327,9 +327,7 @@ class _ProductCard extends StatelessWidget {
           // Cap the trailing metrics so long badges shrink instead of
           // overflowing, without stealing equal space from the product name.
           ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: dense ? 88 : 104,
-            ),
+            constraints: BoxConstraints(maxWidth: dense ? 88 : 104),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
@@ -340,9 +338,9 @@ class _ProductCard extends StatelessWidget {
                   child: Text(
                     '${product.quantity}',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: colors.textPrimary,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: colors.textPrimary,
+                    ),
                     maxLines: 1,
                     textAlign: TextAlign.end,
                   ),

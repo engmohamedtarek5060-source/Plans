@@ -1,25 +1,21 @@
 /// Centralized bilingual strings for the ERP app.
 abstract final class AppStrings {
   // App
-  static String appName(bool isArabic) =>
-      isArabic ? 'Plans ERP' : 'Plans ERP';
+  static String appName(bool isArabic) => isArabic ? 'Plans ERP' : 'Plans ERP';
   static String splashTagline(bool isArabic) => isArabic
       ? 'إدارة أعمالك بذكاء وسلاسة'
       : 'Smart business management, made simple';
 
   // Navigation
-  static String navDashboard(bool isArabic) =>
-      isArabic ? 'الرئيسية' : 'Home';
+  static String navDashboard(bool isArabic) => isArabic ? 'الرئيسية' : 'Home';
   static String navSales(bool isArabic) => isArabic ? 'المبيعات' : 'Sales';
   static String navInventory(bool isArabic) =>
       isArabic ? 'المخزون' : 'Inventory';
-  static String navTreasury(bool isArabic) =>
-      isArabic ? 'الخزينة' : 'Treasury';
+  static String navTreasury(bool isArabic) => isArabic ? 'الخزينة' : 'Treasury';
   static String navMore(bool isArabic) => isArabic ? 'المزيد' : 'More';
 
   // Dashboard
-  static String greeting(bool isArabic) =>
-      isArabic ? 'مرحباً' : 'Welcome back';
+  static String greeting(bool isArabic) => isArabic ? 'مرحباً' : 'Welcome back';
   static String dashboardTitle(bool isArabic) =>
       isArabic ? 'لوحة التحكم' : 'Dashboard';
   static String revenue(bool isArabic) => isArabic ? 'الإيرادات' : 'Revenue';
@@ -29,8 +25,7 @@ abstract final class AppStrings {
       isArabic ? 'إجراءات سريعة' : 'Quick Actions';
   static String recentActivity(bool isArabic) =>
       isArabic ? 'النشاط الأخير' : 'Recent Activity';
-  static String overview(bool isArabic) =>
-      isArabic ? 'نظرة عامة' : 'Overview';
+  static String overview(bool isArabic) => isArabic ? 'نظرة عامة' : 'Overview';
   static String thisMonth(bool isArabic) =>
       isArabic ? 'هذا الشهر' : 'This month';
 
@@ -106,7 +101,8 @@ abstract final class AppStrings {
   static String amountRequired(bool isArabic) => isArabic
       ? 'أدخل مبلغًا أكبر من صفر'
       : 'Enter an amount greater than zero';
-  static String description(bool isArabic) => isArabic ? 'الوصف' : 'Description';
+  static String description(bool isArabic) =>
+      isArabic ? 'الوصف' : 'Description';
   static String descriptionRequired(bool isArabic) =>
       isArabic ? 'أدخل وصفًا (حرفان على الأقل)' : 'Enter a description';
   static String saveExpense(bool isArabic) =>
@@ -162,10 +158,11 @@ abstract final class AppStrings {
       isArabic ? 'حدث خطأ' : 'Something went wrong';
   static String theme(bool isArabic) => isArabic ? 'المظهر' : 'Appearance';
   static String language(bool isArabic) => isArabic ? 'اللغة' : 'Language';
-  static String darkMode(bool isArabic) => isArabic ? 'الوضع الداكن' : 'Dark mode';
-  static String lightMode(bool isArabic) => isArabic ? 'الوضع الفاتح' : 'Light mode';
-  static String systemMode(bool isArabic) =>
-      isArabic ? 'تلقائي' : 'System';
+  static String darkMode(bool isArabic) =>
+      isArabic ? 'الوضع الداكن' : 'Dark mode';
+  static String lightMode(bool isArabic) =>
+      isArabic ? 'الوضع الفاتح' : 'Light mode';
+  static String systemMode(bool isArabic) => isArabic ? 'تلقائي' : 'System';
   static String settings(bool isArabic) => isArabic ? 'الإعدادات' : 'Settings';
   static String viewAll(bool isArabic) => isArabic ? 'عرض الكل' : 'View all';
 
@@ -194,12 +191,18 @@ abstract final class AppStrings {
   static String passwordTooShort(bool isArabic, int min) => isArabic
       ? 'كلمة المرور يجب أن تكون $min أحرف على الأقل'
       : 'Password must be at least $min characters';
+  static String passwordNeedsLettersAndNumbers(bool isArabic) => isArabic
+      ? 'يجب أن تحتوي كلمة المرور على أحرف وأرقام'
+      : 'Password must contain letters and numbers';
   static String confirmPasswordRequired(bool isArabic) =>
       isArabic ? 'أعد إدخال كلمة المرور' : 'Re-enter your password';
   static String passwordsDoNotMatch(bool isArabic) =>
       isArabic ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match';
   static String nameRequired(bool isArabic) =>
       isArabic ? 'أدخل اسمك' : 'Enter your name';
+  static String nameCannotBeNumbersOnly(bool isArabic) => isArabic
+      ? 'يجب أن يحتوي الاسم على حرف واحد على الأقل'
+      : 'Name must contain at least one letter';
   static String companyNameRequired(bool isArabic) =>
       isArabic ? 'أدخل اسم الشركة' : 'Enter your company name';
 
@@ -254,15 +257,15 @@ abstract final class AppStrings {
       ? 'اختر نوع حسابك للمتابعة'
       : 'Choose your account type to continue';
   static String roleClient(bool isArabic) => isArabic ? 'عميل' : 'Client';
-  static String roleClientDescription(bool isArabic) => isArabic
-      ? 'تابع طلباتك وفواتيرك'
-      : 'Follow your orders and invoices';
+  static String roleClientDescription(bool isArabic) =>
+      isArabic ? 'تابع طلباتك وفواتيرك' : 'Follow your orders and invoices';
   static String roleCompany(bool isArabic) =>
       isArabic ? 'صاحب شركة' : 'Company Owner';
   static String roleCompanyDescription(bool isArabic) => isArabic
       ? 'إدارة المبيعات والمخزون والخزينة'
       : 'Manage sales, inventory and treasury';
-  static String continueLabel(bool isArabic) => isArabic ? 'متابعة' : 'Continue';
+  static String continueLabel(bool isArabic) =>
+      isArabic ? 'متابعة' : 'Continue';
   static String selected(bool isArabic) => isArabic ? 'محدد' : 'Selected';
   static String roleSaveFailed(bool isArabic) => isArabic
       ? 'تعذر حفظ اختيارك. حاول مرة أخرى'

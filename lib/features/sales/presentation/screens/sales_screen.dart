@@ -72,7 +72,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                   CustomTextField(
                     controller: _searchController,
                     label: AppStrings.search(isArabic),
-                    hint: AppStrings.search(isArabic),
                     prefixIcon: Icons.search_rounded,
                     onChanged: ref
                         .read(salesControllerProvider.notifier)

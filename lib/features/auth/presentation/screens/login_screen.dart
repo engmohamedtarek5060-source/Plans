@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +32,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
   late final AnimationController _entranceController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -47,13 +47,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       parent: _entranceController,
       curve: AppEffects.easeOut,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _entranceController,
-      curve: AppEffects.easeOut,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: AppEffects.easeOut,
+          ),
+        );
     _entranceController.forward();
   }
 
@@ -66,11 +66,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    await context.read<AuthCubit>().login(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+    FocusManager.instance.primaryFocus?.unfocus();
+    final cubit = context.read<AuthCubit>();
+    if (cubit.isLoading) return;
+
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (kDebugMode) {
+      debugPrint('LoginScreen validation: ${isValid ? 'passed' : 'failed'}');
+    }
+    if (!isValid) return;
+
+    if (kDebugMode) debugPrint('LoginScreen submission started');
+    await cubit.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+    if (kDebugMode) debugPrint('LoginScreen submission completed');
   }
 
   @override
@@ -93,7 +104,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     backgroundColor: colors.error,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.chipRadius,
+                      ),
                     ),
                   ),
                 );
@@ -107,6 +120,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 builder: (context, constraints) {
                   return SingleChildScrollView(
                     padding: AppSpacing.screenPadding,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         minHeight: constraints.maxHeight - 32,
@@ -121,145 +136,165 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 480),
-                              child: IntrinsicHeight(
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      LoginLanguageToggle(isArabic: isArabic),
-                                    ],
-                                  ),
-                                  const Spacer(flex: 1),
-                                  const Center(child: LoginLogo()),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  Text(
-                                    AppStrings.loginTitle(isArabic),
-                                    textAlign: TextAlign.center,
-                                    style: textTheme.headlineMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  Text(
-                                    AppStrings.loginSubtitle(isArabic),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: colors.textSecondary,
-                                      fontSize: 15,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xxl),
-                                  GlassSurface(
-                                    padding: const EdgeInsets.all(AppSpacing.lg),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
+                              child: Form(
+                                key: _formKey,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        CustomTextField(
-                                          controller: _emailController,
-                                          label: AppStrings.email(isArabic),
-                                          hint: 'name@company.com',
-                                          prefixIcon: Icons.alternate_email_rounded,
-                                          keyboardType:
-                                              TextInputType.emailAddress,
-                                          validator: (value) => Validators.email(
-                                            value,
-                                            isArabic: isArabic,
-                                          ),
-                                        ),
-                                        const SizedBox(height: AppSpacing.md),
-                                        CustomTextField(
-                                          controller: _passwordController,
-                                          label: AppStrings.password(isArabic),
-                                          hint: '••••••••',
-                                          prefixIcon: Icons.lock_outline_rounded,
-                                          obscureText: _obscurePassword,
-                                          suffixIcon: IconButton(
-                                            icon: Icon(
-                                              _obscurePassword
-                                                  ? Icons.visibility_outlined
-                                                  : Icons.visibility_off_outlined,
-                                              size: 20,
-                                              color: colors.textTertiary,
-                                            ),
-                                            onPressed: () => setState(
-                                              () => _obscurePassword =
-                                                  !_obscurePassword,
-                                            ),
-                                          ),
-                                          validator: (value) =>
-                                              Validators.password(
-                                            value,
-                                            isArabic: isArabic,
-                                          ),
-                                        ),
-                                        const SizedBox(height: AppSpacing.sm),
-                                        Align(
-                                          alignment:
-                                              AlignmentDirectional.centerEnd,
-                                          child: TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).push(
-                                              MaterialPageRoute<void>(
-                                                builder: (_) =>
-                                                    const ForgotPasswordScreen(),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              AppStrings.forgotPassword(
-                                                isArabic,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: AppSpacing.sm),
-                                        CustomPrimaryButton(
-                                          label: AppStrings.signIn(isArabic),
-                                          onPressed: isLoading ? null : _submit,
-                                          isLoading: isLoading,
-                                          icon: Icons.arrow_forward_rounded,
-                                          useGradient: true,
-                                        ),
+                                        LoginLanguageToggle(isArabic: isArabic),
                                       ],
                                     ),
-                                  ),
-                                  const Spacer(flex: 1),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        AppStrings.noAccount(isArabic),
-                                        style: TextStyle(
-                                          color: colors.textSecondary,
-                                          fontSize: 14,
-                                        ),
+                                    const SizedBox(height: AppSpacing.xl),
+                                    const Center(child: LoginLogo()),
+                                    const SizedBox(height: AppSpacing.xl),
+                                    Text(
+                                      AppStrings.loginTitle(isArabic),
+                                      textAlign: TextAlign.center,
+                                      style: textTheme.headlineMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.5,
                                       ),
-                                      TextButton(
-                                        onPressed: isLoading
-                                            ? null
-                                            : () => Navigator.of(context).push(
+                                    ),
+                                    const SizedBox(height: AppSpacing.xs),
+                                    Text(
+                                      AppStrings.loginSubtitle(isArabic),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: colors.textSecondary,
+                                        fontSize: 15,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.xxl),
+                                    GlassSurface(
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.lg,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          AutofillGroup(
+                                            child: Column(
+                                              children: [
+                                                CustomTextField(
+                                                  controller: _emailController,
+                                                  label: AppStrings.email(
+                                                    isArabic,
+                                                  ),
+                                                  prefixIcon: Icons
+                                                      .alternate_email_rounded,
+                                                  keyboardType: TextInputType
+                                                      .emailAddress,
+                                                  textInputAction:
+                                                      TextInputAction.next,
+                                                  autofillHints: const [
+                                                    AutofillHints.email,
+                                                  ],
+                                                  autocorrect: false,
+                                                  enableSuggestions: false,
+                                                  validator: (value) =>
+                                                      Validators.email(
+                                                        value,
+                                                        isArabic: isArabic,
+                                                      ),
+                                                ),
+                                                const SizedBox(
+                                                  height: AppSpacing.md,
+                                                ),
+                                                CustomPasswordField(
+                                                  controller:
+                                                      _passwordController,
+                                                  label: AppStrings.password(
+                                                    isArabic,
+                                                  ),
+                                                  prefixIcon: Icons
+                                                      .lock_outline_rounded,
+                                                  textInputAction:
+                                                      TextInputAction.done,
+                                                  onFieldSubmitted: (_) =>
+                                                      _submit(),
+                                                  autofillHints: const [
+                                                    AutofillHints.password,
+                                                  ],
+                                                  validator: (value) =>
+                                                      Validators.password(
+                                                        value,
+                                                        isArabic: isArabic,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: AppSpacing.sm),
+                                          Align(
+                                            alignment:
+                                                AlignmentDirectional.centerEnd,
+                                            child: TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute<void>(
+                                                      builder: (_) =>
+                                                          const ForgotPasswordScreen(),
+                                                    ),
+                                                  ),
+                                              child: Text(
+                                                AppStrings.forgotPassword(
+                                                  isArabic,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: AppSpacing.sm),
+                                          CustomPrimaryButton(
+                                            label: AppStrings.signIn(isArabic),
+                                            onPressed: isLoading
+                                                ? null
+                                                : _submit,
+                                            isLoading: isLoading,
+                                            icon: Icons.arrow_forward_rounded,
+                                            useGradient: true,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.xl),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          AppStrings.noAccount(isArabic),
+                                          style: TextStyle(
+                                            color: colors.textSecondary,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: isLoading
+                                              ? null
+                                              : () => Navigator.of(context).push(
                                                   MaterialPageRoute<void>(
                                                     builder: (_) =>
                                                         const RegisterScreen(),
                                                   ),
                                                 ),
-                                        child: Text(
-                                          AppStrings.signUp(isArabic),
+                                          child: Text(
+                                            AppStrings.signUp(isArabic),
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: AppSpacing.md),
-                                ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppSpacing.md),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
                             ),
                           ),
                         ),

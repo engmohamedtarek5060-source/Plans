@@ -112,10 +112,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     if (succeeded) {
       navigator.pop();
       messenger.showSnackBar(
-        _snackBar(
-          AppStrings.expenseCreated(isArabic),
-          colors.success,
-        ),
+        _snackBar(AppStrings.expenseCreated(isArabic), colors.success),
       );
       return;
     }
@@ -132,13 +129,13 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   }
 
   SnackBar _snackBar(String message, Color background) => SnackBar(
-        content: Text(message),
-        backgroundColor: background,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
-        ),
-      );
+    content: Text(message),
+    backgroundColor: background,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -165,8 +162,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                         icon: const Icon(Icons.arrow_back_rounded),
                         // Blocked mid-flight: leaving now would orphan a request
                         // whose result the user still needs.
-                        onPressed:
-                            isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: isSubmitting
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         style: IconButton.styleFrom(
                           backgroundColor: colors.inputFill,
                         ),
@@ -186,8 +184,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                       error: (error, _) => ErrorState(
                         message: describeError(error, isArabic),
                         retryLabel: AppStrings.retry(isArabic),
-                        onRetry: () =>
-                            ref.invalidate(employeeOptionsProvider),
+                        onRetry: () => ref.invalidate(employeeOptionsProvider),
                       ),
                       // A claim cannot exist without an employee to own it, so
                       // say so plainly instead of showing a form that can only
@@ -195,8 +192,9 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                       data: (employees) => employees.isEmpty
                           ? EmptyState(
                               title: AppStrings.noEmployeesTitle(isArabic),
-                              subtitle:
-                                  AppStrings.noEmployeesSubtitle(isArabic),
+                              subtitle: AppStrings.noEmployeesSubtitle(
+                                isArabic,
+                              ),
                               icon: Icons.badge_outlined,
                             )
                           : _buildForm(
@@ -296,7 +294,6 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             CustomTextField(
               controller: _descriptionController,
               label: AppStrings.description(isArabic),
-              hint: isArabic ? 'غداء عمل مع عميل' : 'Client lunch',
               prefixIcon: Icons.notes_outlined,
               validator: (value) => Validators.requiredText(
                 value,
@@ -308,7 +305,6 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
             CustomTextField(
               controller: _amountController,
               label: AppStrings.amount(isArabic),
-              hint: '0.00',
               prefixIcon: Icons.payments_outlined,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,

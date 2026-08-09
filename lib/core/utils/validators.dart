@@ -21,6 +21,8 @@ abstract final class Validators {
     r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?'
     r'(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$',
   );
+  static final RegExp _letterPattern = RegExp(r'\p{L}', unicode: true);
+  static final RegExp _numberPattern = RegExp(r'\d');
 
   /// Validates an email address, ignoring surrounding whitespace.
   ///
@@ -38,7 +40,8 @@ abstract final class Validators {
 
   /// Presence only. No length or complexity rule: those belong to registration,
   /// and applying them at sign-in would lock out any existing account whose
-  /// password predates the current policy.
+  /// password predates the current policy. The server is the authority on
+  /// whether an existing password is correct.
   static String? password(String? value, {required bool isArabic}) {
     if (value == null || value.isEmpty) {
       return AppStrings.passwordRequired(isArabic);
@@ -53,13 +56,18 @@ abstract final class Validators {
   /// turns a round-trip and a red snackbar into inline feedback.
   static const int minPasswordLength = 6;
 
-  /// For choosing a password, as opposed to entering an existing one.
+  /// For choosing a password, as opposed to entering an existing one. This is
+  /// where the policy is enforced, so a new account cannot be created with
+  /// credentials the backend would reject.
   static String? newPassword(String? value, {required bool isArabic}) {
     if (value == null || value.isEmpty) {
       return AppStrings.passwordRequired(isArabic);
     }
     if (value.length < minPasswordLength) {
       return AppStrings.passwordTooShort(isArabic, minPasswordLength);
+    }
+    if (!_letterPattern.hasMatch(value) || !_numberPattern.hasMatch(value)) {
+      return AppStrings.passwordNeedsLettersAndNumbers(isArabic);
     }
     return null;
   }
@@ -92,6 +100,17 @@ abstract final class Validators {
   }) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.length < minLength) return message;
+    return null;
+  }
+
+  /// A person's name must contain at least one letter. This accepts Arabic,
+  /// Latin, and other scripts while rejecting numeric-only input.
+  static String? name(String? value, {required bool isArabic}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.length < 2) return AppStrings.nameRequired(isArabic);
+    if (!_letterPattern.hasMatch(trimmed)) {
+      return AppStrings.nameCannotBeNumbersOnly(isArabic);
+    }
     return null;
   }
 

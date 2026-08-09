@@ -9,7 +9,6 @@ class CustomTextField extends StatefulWidget {
     super.key,
     this.controller,
     this.label,
-    this.hint,
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
@@ -20,11 +19,15 @@ class CustomTextField extends StatefulWidget {
     this.readOnly = false,
     this.onTap,
     this.autofocus = false,
+    this.textInputAction,
+    this.onFieldSubmitted,
+    this.autofillHints,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
   });
 
   final TextEditingController? controller;
   final String? label;
-  final String? hint;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final bool obscureText;
@@ -35,6 +38,11 @@ class CustomTextField extends StatefulWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final bool autofocus;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
+  final Iterable<String>? autofillHints;
+  final bool autocorrect;
+  final bool enableSuggestions;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -96,14 +104,23 @@ class _CustomTextFieldState extends State<CustomTextField> {
             readOnly: widget.readOnly,
             onTap: widget.onTap,
             autofocus: widget.autofocus,
+            textInputAction: widget.textInputAction,
+            onFieldSubmitted: widget.onFieldSubmitted,
+            autofillHints: widget.autofillHints,
+            autocorrect: widget.autocorrect,
+            enableSuggestions: widget.enableSuggestions,
+            textAlign: TextAlign.start,
+            textDirection: Directionality.of(context),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
             decoration: InputDecoration(
               labelText: hasLabel ? widget.label : null,
-              hintText: widget.hint,
-              floatingLabelBehavior: FloatingLabelBehavior.auto,
+              // Keep labels out of the editable area. Empty, unfocused fields
+              // contain no placeholder-like text and labels never jump while
+              // the user switches between LTR and RTL input.
+              floatingLabelBehavior: FloatingLabelBehavior.always,
               floatingLabelStyle: TextStyle(
                 color: _hasFocus
                     ? AppColors.brandPrimary
@@ -125,13 +142,73 @@ class _CustomTextFieldState extends State<CustomTextField> {
               suffixIcon: widget.suffixIcon,
               fillColor: isDark
                   ? colors.inputFill
-                  : (_hasFocus
-                      ? Colors.white
-                      : colors.inputFill),
+                  : (_hasFocus ? Colors.white : colors.inputFill),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A password field that owns its visibility state, limiting rebuilds to the
+/// field instead of rebuilding an entire form.
+class CustomPasswordField extends StatefulWidget {
+  const CustomPasswordField({
+    required this.controller,
+    required this.label,
+    required this.validator,
+    super.key,
+    this.prefixIcon = Icons.lock_outline_rounded,
+    this.textInputAction,
+    this.onFieldSubmitted,
+    this.autofillHints,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? Function(String?) validator;
+  final IconData prefixIcon;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
+  final Iterable<String>? autofillHints;
+
+  @override
+  State<CustomPasswordField> createState() => _CustomPasswordFieldState();
+}
+
+class _CustomPasswordFieldState extends State<CustomPasswordField> {
+  bool _obscureText = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final tooltip = _obscureText ? 'Show password' : 'Hide password';
+
+    return CustomTextField(
+      controller: widget.controller,
+      label: widget.label,
+      prefixIcon: widget.prefixIcon,
+      obscureText: _obscureText,
+      keyboardType: TextInputType.visiblePassword,
+      textInputAction: widget.textInputAction,
+      onFieldSubmitted: widget.onFieldSubmitted,
+      autofillHints: widget.autofillHints,
+      autocorrect: false,
+      enableSuggestions: false,
+      validator: widget.validator,
+      suffixIcon: IconButton(
+        tooltip: tooltip,
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        icon: Icon(
+          _obscureText
+              ? Icons.visibility_outlined
+              : Icons.visibility_off_outlined,
+          size: 20,
+          color: colors.textTertiary,
+        ),
+        onPressed: () => setState(() => _obscureText = !_obscureText),
+      ),
     );
   }
 }

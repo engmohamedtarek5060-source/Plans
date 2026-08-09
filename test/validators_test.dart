@@ -51,16 +51,22 @@ void main() {
 
     test('localizes its messages', () {
       expect(Validators.email('', isArabic: true), 'أدخل البريد الإلكتروني');
-      expect(Validators.email('nope', isArabic: true), 'بريد إلكتروني غير صالح');
+      expect(
+        Validators.email('nope', isArabic: true),
+        'بريد إلكتروني غير صالح',
+      );
     });
   });
 
   group('Validators.password', () {
     test('accepts any non-empty value', () {
-      expect(Validators.password('x', isArabic: false), isNull);
+      expect(Validators.password('secure1', isArabic: false), isNull);
+      expect(Validators.password('كلمة123', isArabic: true), isNull);
       // No length or complexity rule at sign-in: an older account whose
       // password predates the current policy must still be able to log in.
       expect(Validators.password('short', isArabic: false), isNull);
+      expect(Validators.password('abcdef', isArabic: false), isNull);
+      expect(Validators.password('123456', isArabic: false), isNull);
       // Whitespace is not trimmed — a password may legitimately contain it.
       expect(Validators.password(' ', isArabic: false), isNull);
     });
@@ -81,7 +87,19 @@ void main() {
         Validators.newPassword('12345', isArabic: false),
         'Password must be at least 6 characters',
       );
-      expect(Validators.newPassword('123456', isArabic: false), isNull);
+      expect(Validators.newPassword('abc123', isArabic: false), isNull);
+    });
+
+    test('requires both letters and numbers', () {
+      expect(
+        Validators.newPassword('123456', isArabic: false),
+        'Password must contain letters and numbers',
+      );
+      expect(
+        Validators.newPassword('abcdef', isArabic: false),
+        'Password must contain letters and numbers',
+      );
+      expect(Validators.newPassword('كلمة123', isArabic: true), isNull);
     });
 
     test('reports an empty value as missing, not too short', () {
@@ -152,6 +170,21 @@ void main() {
       expect(Validators.requiredText(null, message: 'required'), 'required');
       expect(Validators.requiredText('   ', message: 'required'), 'required');
       expect(Validators.requiredText('a', message: 'required'), 'required');
+    });
+  });
+
+  group('Validators.name', () {
+    test('accepts Latin and Arabic names', () {
+      expect(Validators.name('Jane Doe', isArabic: false), isNull);
+      expect(Validators.name('محمد أحمد', isArabic: true), isNull);
+    });
+
+    test('rejects missing and numbers-only names', () {
+      expect(Validators.name('', isArabic: false), 'Enter your name');
+      expect(
+        Validators.name('12345', isArabic: false),
+        'Name must contain at least one letter',
+      );
     });
   });
 }
